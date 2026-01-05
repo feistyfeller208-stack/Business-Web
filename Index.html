@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biashara Sahihi - Tanzania</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        body { background: #f5f5f5; color: #333; padding-bottom: 80px; }
+        header { background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%); color: white; padding: 15px; text-align: center; }
+        h1 { font-size: 1.4rem; }
+        .tabs { display: flex; background: white; border-bottom: 2px solid #2E8B57; }
+        .tab-btn { flex: 1; padding: 12px 5px; border: none; background: white; font-size: 0.8rem; color: #555; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .tab-btn.active { background: #2E8B57; color: white; font-weight: bold; }
+        .tab-content { display: none; padding: 15px; }
+        .tab-content.active { display: block; }
+        .card { background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card h3 { color: #2E8B57; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9f9f9; border-radius: 5px; border-left: 4px solid #2E8B57; margin-bottom: 10px; }
+        .item-info { display: flex; flex-direction: column; }
+        .item-name { font-weight: bold; }
+        .item-detail { font-size: 0.9rem; color: #666; }
+        .item-amount { font-weight: bold; color: #2E8B57; }
+        .btn { background: #2E8B57; color: white; border: none; padding: 12px 20px; border-radius: 5px; font-size: 1rem; cursor: pointer; width: 100%; margin-top: 10px; }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat { background: white; padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #2E8B57; }
+        .action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px; display: flex; gap: 10px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .action-btn { flex: 1; padding: 12px; background: #2E8B57; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .hidden { display: none !important; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📓 Biashara Sahihi</h1>
+        <div>Vitabu 5 vya Biashara Yako</div>
+    </header>
+    
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="bidhaa"><span>📦</span><span>Bidhaa</span></button>
+        <button class="tab-btn" data-tab="mauzo"><span>💰</span><span>Mauzo</span></button>
+        <button class="tab-btn" data-tab="fedha"><span>🏦</span><span>Fedha</span></button>
+        <button class="tab-btn" data-tab="deni"><span>📝</span><span>Deni</span></button>
+        <button class="tab-btn" data-tab="nunua"><span>🚚</span><span>Nunua</span></button>
+    </div>
+    
+    <div id="bidhaa" class="tab-content active">
+        <div class="card">
+            <h3>📦 Bidhaa Zako</h3>
+            <div class="item-list" id="stock-list"></div>
+            <button class="btn" onclick="showAddProductForm()">+ Ongeza Bidhaa</button>
+        </div>
+    </div>
+    
+    <div id="mauzo" class="tab-content">
+        <div class="stats">
+            <div class="stat"><div class="stat-value" id="today-sales">TZS 0</div><div class="stat-label">Mauzo ya Leo</div></div>
+            <div class="stat"><div class="stat-value" id="sales-count">0</div><div class="stat-label">Wateja Leo</div></div>
+        </div>
+        <div class="card">
+            <h3>💰 Mauzo ya Leo</h3>
+            <div class="item-list" id="sales-list"></div>
+        </div>
+    </div>
+    
+    <div id="fedha" class="tab-content">
+        <div class="card">
+            <h3>🏦 Sanduku la Fedha</h3>
+            <input type="number" id="morning-cash" placeholder="Fedha ya Asubuhi">
+            <div class="item"><div class="item-info"><div class="item-name">Mauzo ya Leo</div></div><div class="item-amount" id="cash-sales-total">TZS 0</div></div>
+            <input type="number" id="expenses" placeholder="Matumizi ya Leo">
+            <div class="item"><div class="item-info"><div class="item-name">Fedha ya Jioni</div></div><div class="item-amount" id="expected-cash">TZS 0</div></div>
+            <button class="btn" onclick="saveCash()">💾 Hifadhi Fedha</button>
+        </div>
+    </div>
+    
+    <div id="deni" class="tab-content">
+        <div class="card">
+            <h3>📝 Wanaodeni</h3>
+            <div class="item-list" id="debt-list"></div>
+            <button class="btn" onclick="showAddDebtForm()">➕ Ongeza Deni</button>
+        </div>
+    </div>
+    
+    <div id="nunua" class="tab-content">
+        <div class="card">
+            <h3>🚚 Nahitaji Kununua</h3>
+            <div class="item-list" id="buy-list"></div>
+            <div class="item"><div class="item-info"><div class="item-name">Gharama ya Takriban</div></div><div class="item-amount" id="total-cost">TZS 0</div></div>
+            <button class="btn" onclick="createOrder()">📱 Tengeneza Oda</button>
+        </div>
+    </div>
+    
+    <!-- Forms (Hidden) -->
+    <div id="add-product-form" class="tab-content hidden">
+        <div class="card">
+            <h3>➕ Ongeza Bidhaa</h3>
+            <input type="text" id="product-name" placeholder="Jina la Bidhaa">
+            <input type="number" id="product-quantity" placeholder="Idadi">
+            <input type="number" id="product-price" placeholder="Bei ya Kuuza">
+            <input type="number" id="product-cost" placeholder="Bei ya Ununuzi">
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" onclick="hideAddProductForm()">↩️ Rudi</button>
+                <button class="btn" onclick="addProduct()">✓ Hifadhi</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="add-debt-form" class="tab-content hidden">
+        <div class="card">
+            <h3>➕ Ongeza Deni</h3>
+            <input type="text" id="debt-customer" placeholder="Jina la Mteja">
+            <input type="number" id="debt-amount" placeholder="Kiasi">
+            <input type="tel" id="debt-phone" placeholder="Namba ya Simu">
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" onclick="hideAddDebtForm()">↩️ Rudi</button>
+                <button class="btn" onclick="addDebt()">✓ Hifadhi</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="action-bar">
+        <button class="action-btn" onclick="quickSale()">💰 Muuzo Haraka</button>
+        <button class="action-btn" onclick="quickExpense()">📝 Matumizi</button>
+        <button class="action-btn" onclick="exportData()">📤 Hifadhi</button>
+    </div>
+    
+    <script>
+        // APP CODE CONTINUES IN NEXT CHUNK
+
+      <script>
+// =========== DATA STORAGE ===========
+function saveData(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+function loadData(key) { const data = localStorage.getItem(key); return data ? JSON.parse(data) : []; }
+
+let stock = loadData('biashara_stock') || [];
+let sales = loadData('biashara_sales') || [];
+let debts = loadData('biashara_debts') || [];
+let cash = loadData('biashara_cash') || { morning: 0, expenses: 0 };
+
+// Sample data if empty
+if (stock.length === 0) {
+    stock = [
+        { id: 1, name: "Soda", quantity: 24, price: 1000, cost: 700, minStock: 10 },
+        { id: 2, name: "Maji", quantity: 12, price: 500, cost: 300, minStock: 5 },
+        { id: 3, name: "Biscuit", quantity: 30, price: 300, cost: 200, minStock: 15 }
+    ];
+    saveData('biashara_stock', stock);
+}
+
+// =========== UI FUNCTIONS ===========
+document.querySelectorAll('.tab-btn').forEach(button => {
+    button.addEventListener('click', () => {
+        const tabId = button.getAttribute('data-tab');
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        
+        if (tabId === 'bidhaa') refreshStock();
+        if (tabId === 'mauzo') refreshSales();
+        if (tabId === 'fedha') refreshCash();
+        if (tabId === 'deni') refreshDebts();
+        if (tabId === 'nunua') refreshBuyList();
+    });
+});
+
+// =========== STOCK MANAGEMENT ===========
+function refreshStock() {
+    const stockList = document.getElementById('stock-list');
+    stockList.innerHTML = stock.map(item => `
+        <div class="item">
+            <div class="item-info">
+                <div class="item-name">${item.name}</div>
+                <div class="item-detail">Idadi: ${item.quantity} | Bei: ${formatCurrency(item.price)}</div>
+            </div>
+            <div class="item-amount">${item.quantity}</div>
+        </div>
+    `).join('');
+}
+
+function showAddProductForm() {
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.getElementById('add-product-form').classList.add('active');
+}
+
+function hideAddProductForm() {
+    document.getElementById('add-product-form').classList.remove('active');
+    document.getElementById('bidhaa').classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-tab') === 'bidhaa') btn.classList.add('active');
+    });
+}
+
+function addProduct() {
+    const name = document.getElementById('product-name').value;
+    const quantity = parseInt(document.getElementById('product-quantity').value) || 0;
+    const price = parseInt(document.getElementById('product-price').value) || 0;
+    const cost = parseInt(document.getElementById('product-cost').value) || 0;
+    
+    if (!name) { alert('Ingiza jina la bidhaa'); return; }
+    
+    stock.push({ id: Date.now(), name, quantity, price, cost, minStock: 10 });
+    saveData('biashara_stock', stock);
+    
+    document.getElementById('product-name').value = '';
+    document.getElementById('product-quantity').value = '';
+    document.getElementById('product-price').value = '';
+    document.getElementById('product-cost').value = '';
+    
+    hideAddProductForm();
+    refreshStock();
+    refreshBuyList();
+    alert(`✅ ${name} imeongezwa`);
+}
+
+// =========== SALES MANAGEMENT ===========
+function refreshSales() {
+    const today = new Date().toDateString();
+    const todaySales = sales.filter(sale => new Date(sale.date).toDateString() === today);
+    const totalSales = todaySales.reduce((sum, sale) => sum + sale.total, 0);
+    
+    document.getElementById('today-sales').textContent = formatCurrency(totalSales);
+    document.getElementById('sales-count').textContent = todaySales.length;
+    document.getElementById('cash-sales-total').textContent = formatCurrency(totalSales);
+    
+    const salesList = document.getElementById('sales-list');
+    if (todaySales.length === 0) {
+        salesList.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">Bado hakuna mauzo leo</div>';
+        return;
+    }
+    
+    salesList.innerHTML = todaySales.map(sale => `
+        <div class="item">
+            <div class="item-info">
+                <div class="item-name">${sale.customer}</div>
+                <div class="item-detail">${sale.product} × ${sale.quantity} | ${sale.time}</div>
+            </div>
+            <div class="item-amount">${formatCurrency(sale.total)}</div>
+        </div>
+    `).join('');
+    
+    updateCashCalculation();
+      }
+
+      function quickSale() {
+    if (stock.length === 0) {
+        alert('Kwanza ongeza bidhaa kwenye "Bidhaa"');
+        return;
+    }
+    
+    const customer = prompt('Jina la mteja:') || 'Mteja';
+    const productNames = stock.map(item => item.name).join(', ');
+    const productName = prompt(`Bidhaa gani? (${productNames}):`);
+    
+    const product = stock.find(item => item.name.toLowerCase() === productName?.toLowerCase());
+    if (!product) {
+        alert('Bidhaa hiyo haipo');
+        return;
+    }
+    
+    const quantity = parseInt(prompt(`Idadi ya ${product.name}:`, '1')) || 1;
+    if (quantity > product.quantity) {
+        alert(`Una ${product.quantity} tu ya ${product.name}`);
+        return;
+    }
+    
+    const total = quantity * product.price;
+    const newSale = {
+        id: Date.now(),
+        customer: customer,
+        product: product.name,
+        quantity: quantity,
+        total: total,
+        date: new Date().toISOString(),
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+    };
+    
+    sales.push(newSale);
+    saveData('biashara_sales', sales);
+    
+    product.quantity -= quantity;
+    saveData('biashara_stock', stock);
+    
+    refreshSales();
+    refreshStock();
+    refreshBuyList();
+    alert(`✅ ${customer}: ${product.name} × ${quantity} = ${formatCurrency(total)}`);
+}
+
+// =========== CASH MANAGEMENT ===========
+function refreshCash() {
+    const todaySales = sales.filter(sale => 
+        new Date(sale.date).toDateString() === new Date().toDateString()
+    );
+    const totalSales = todaySales.reduce((sum, sale) => sum + sale.total, 0);
+    
+    document.getElementById('morning-cash').value = cash.morning || '';
+    document.getElementById('expenses').value = cash.expenses || '';
+    document.getElementById('cash-sales-total').textContent = formatCurrency(totalSales);
+    updateCashCalculation();
+}
+
+function updateCashCalculation() {
+    const morningCash = parseFloat(document.getElementById('morning-cash').value) || 0;
+    const todaySales = sales.filter(sale => 
+        new Date(sale.date).toDateString() === new Date().toDateString()
+    );
+    const totalSales = todaySales.reduce((sum, sale) => sum + sale.total, 0);
+    const expenses = parseFloat(document.getElementById('expenses').value) || 0;
+    
+    const expectedCash = morningCash + totalSales - expenses;
+    document.getElementById('expected-cash').textContent = formatCurrency(expectedCash);
+}
+
+function saveCash() {
+    const morningCash = parseFloat(document.getElementById('morning-cash').value) || 0;
+    const expenses = parseFloat(document.getElementById('expenses').value) || 0;
+    
+    cash = { morning: morningCash, expenses: expenses, lastUpdated: new Date().toISOString() };
+    saveData('biashara_cash', cash);
+    alert('✅ Fedha zimehifadhiwa!');
+}
+
+// =========== DEBT MANAGEMENT ===========
+function refreshDebts() {
+    const debtList = document.getElementById('debt-list');
+    
+    if (debts.length === 0) {
+        debtList.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">Hakuna madeni</div>';
+        return;
+    }
+    
+    debtList.innerHTML = debts.map(debt => `
+        <div class="item">
+            <div class="item-info">
+                <div class="item-name">${debt.customer}</div>
+                <div class="item-detail">${debt.date} ${debt.phone ? `| ${debt.phone}` : ''}</div>
+            </div>
+            <div class="item-amount">${formatCurrency(debt.amount)}</div>
+        </div>
+    `).join('');
+}
+
+function showAddDebtForm() {
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.getElementById('add-debt-form').classList.add('active');
+}
+
+function hideAddDebtForm() {
+    document.getElementById('add-debt-form').classList.remove('active');
+    document.getElementById('deni').classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-tab') === 'deni') btn.classList.add('active');
+    });
+}
+
+function addDebt() {
+    const customer = document.getElementById('debt-customer').value;
+    const amount = parseInt(document.getElementById('debt-amount').value) || 0;
+    const phone = document.getElementById('debt-phone').value;
+    
+    if (!customer || amount <= 0) { alert('Ingiza jina na kiasi'); return; }
+    
+    debts.push({ id: Date.now(), customer, amount, phone, date: new Date().toLocaleDateString('sw-TZ') });
+    saveData('biashara_debts', debts);
+    
+    document.getElementById('debt-customer').value = '';
+    document.getElementById('debt-amount').value = '';
+    document.getElementById('debt-phone').value = '';
+    
+    hideAddDebtForm();
+    refreshDebts();
+    alert(`✅ Deni la ${formatCurrency(amount)} limeongezwa`);
+      }
+
+      // =========== BUY LIST MANAGEMENT ===========
+function refreshBuyList() {
+    const buyList = document.getElementById('buy-list');
+    let itemsToBuy = [];
+    let totalCost = 0;
+    
+    stock.forEach(item => {
+        if (item.quantity <= item.minStock) {
+            const needed = item.minStock * 3 - item.quantity;
+            const cost = needed * item.cost;
+            itemsToBuy.push({ name: item.name, needed, current: item.quantity, cost });
+            totalCost += cost;
+        }
+    });
+    
+    document.getElementById('total-cost').textContent = formatCurrency(totalCost);
+    
+    if (itemsToBuy.length === 0) {
+        buyList.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">Huna hitaji la kununua</div>';
+        return;
+    }
+    
+    buyList.innerHTML = itemsToBuy.map(item => `
+        <div class="item">
+            <div class="item-info">
+                <div class="item-name">${item.name}</div>
+                <div class="item-detail">Inahitajika: ${item.needed} (sasa: ${item.current})</div>
+            </div>
+            <div class="item-amount">${formatCurrency(item.cost)}</div>
+        </div>
+    `).join('');
+}
+
+function createOrder() {
+    let itemsToBuy = [];
+    let totalCost = 0;
+    
+    stock.forEach(item => {
+        if (item.quantity <= item.minStock) {
+            const needed = item.minStock * 3 - item.quantity;
+            const cost = needed * item.cost;
+            itemsToBuy.push({ name: item.name, needed, cost });
+            totalCost += cost;
+        }
+    });
+    
+    if (itemsToBuy.length === 0) { alert('Huna hitaji la kununua'); return; }
+    
+    const orderText = itemsToBuy.map(item => `${item.name}: ${item.needed}`).join(', ');
+    const message = `Habari, nahitaji kununua: ${orderText}. Jumla: ${formatCurrency(totalCost)}.`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+}
+
+// =========== QUICK EXPENSE ===========
+function quickExpense() {
+    const amount = parseFloat(prompt('Kiasi cha matumizi (TZS):', '')) || 0;
+    const reason = prompt('Sababu:', '') || 'Matumizi';
+    
+    if (amount <= 0) { alert('Ingiza kiasi'); return; }
+    
+    const currentExpenses = cash.expenses || 0;
+    cash.expenses = currentExpenses + amount;
+    saveData('biashara_cash', cash);
+    
+    document.getElementById('expenses').value = cash.expenses;
+    updateCashCalculation();
+    alert(`✅ ${reason}: ${formatCurrency(amount)}`);
+}
+
+// =========== EXPORT DATA ===========
+function exportData() {
+    const allData = { stock, sales, debts, cash, exported: new Date().toISOString() };
+    const dataStr = JSON.stringify(allData, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `biashara-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// =========== UTILITY FUNCTIONS ===========
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('sw-TZ', {
+        style: 'currency',
+        currency: 'TZS',
+        minimumFractionDigits: 0
+    }).format(amount);
+}
+
+// =========== INITIAL LOAD ===========
+refreshStock();
+refreshSales();
+refreshCash();
+refreshDebts();
+refreshBuyList();
+
+document.getElementById('morning-cash').addEventListener('input', updateCashCalculation);
+document.getElementById('expenses').addEventListener('input', updateCashCalculation);
+
+console.log('📱 Biashara Sahihi imeanza!');
+</script>
+</body>
+</html>
