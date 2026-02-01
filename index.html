@@ -111,7 +111,7 @@
     <div id="add-debt-form" class="tab-content hidden">
         <div class="card">
             <h3>➕ Ongeza Deni</h3>
-            <input type="text" id="debt-customer" placeholder="Jina la Mteja">
+            <input type="text" id="debt-customer" placeholder="Jçina la Mteja">
             <input type="number" id="debt-amount" placeholder="Kiasi">
             <input type="tel" id="debt-phone" placeholder="Namba ya Simu">
             <div style="display: flex; gap: 10px;">
@@ -127,20 +127,24 @@
         <button class="action-btn" onclick="exportData()">📤 Hifadhi</button>
     </div>
     
-    <script>
-        // APP CODE CONTINUES IN NEXT CHUNK
-
-      <script>
+<script>
 // =========== DATA STORAGE ===========
-function saveData(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
-function loadData(key) { const data = localStorage.getItem(key); return data ? JSON.parse(data) : []; }
+function saveData(key, data) { 
+    localStorage.setItem(key, JSON.stringify(data)); 
+}
 
+function loadData(key) { 
+    const data = localStorage.getItem(key); 
+    return data ? JSON.parse(data) : []; 
+}
+
+// Initialize data
 let stock = loadData('biashara_stock') || [];
 let sales = loadData('biashara_sales') || [];
 let debts = loadData('biashara_debts') || [];
 let cash = loadData('biashara_cash') || { morning: 0, expenses: 0 };
 
-// Sample data if empty
+// Add sample data if empty
 if (stock.length === 0) {
     stock = [
         { id: 1, name: "Soda", quantity: 24, price: 1000, cost: 700, minStock: 10 },
@@ -150,15 +154,24 @@ if (stock.length === 0) {
     saveData('biashara_stock', stock);
 }
 
-// =========== UI FUNCTIONS ===========
+// =========== TAB SWITCHING ===========
 document.querySelectorAll('.tab-btn').forEach(button => {
     button.addEventListener('click', () => {
         const tabId = button.getAttribute('data-tab');
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        
+        // Update active tab button
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
         button.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        // Show active tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
         document.getElementById(tabId).classList.add('active');
         
+        // Refresh tab data
         if (tabId === 'bidhaa') refreshStock();
         if (tabId === 'mauzo') refreshSales();
         if (tabId === 'fedha') refreshCash();
@@ -167,56 +180,39 @@ document.querySelectorAll('.tab-btn').forEach(button => {
     });
 });
 
-// =========== STOCK MANAGEMENT ===========
+// =========== PRODUCT MANAGEMENT ===========
 function refreshStock() {
     const stockList = document.getElementById('stock-list');
+    
+    if (stock.length === 0) {
+        stockList.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">Bado hakuna bidhaa. Bonyeza "Ongeza Bidhaa" kuanza.</div>';
+        return;
+    }
+    
     stockList.innerHTML = stock.map(item => `
-        <div class="item" onclick="showProductDetails(${item.id})" 
-             oncontextmenu="showProductMenu(event, ${item.id})"
-             data-id="${item.id}">
+        <div class="item" onclick="showProductMenu(${item.id})">
             <div class="item-info">
                 <div class="item-name">${item.name}</div>
-                <div class="item-detail">
-                    Idadi: ${item.quantity} | 
-                    Bei: ${formatCurrency(item.price)} |
-                    Faida: ${formatCurrency(item.price - item.cost)}
-                </div>
+                <div class="item-detail">Idadi: ${item.quantity} | Bei: ${formatCurrency(item.price)}</div>
             </div>
-            <div class="item-amount" style="color: ${getStockColor(item.quantity, item.minStock)}">
-                ${item.quantity}
-            </div>
+            <div class="item-amount">${item.quantity}</div>
         </div>
     `).join('');
 }
 
-function getStockColor(quantity, minStock) {
-    if (quantity === 0) return '#e74c3c'; // Red - out of stock
-    if (quantity <= minStock) return '#f39c12'; // Orange - low stock
-    return '#2ecc71'; // Green - good stock
-}
-
-function showProductDetails(productId) {
+function showProductMenu(productId) {
     const product = stock.find(p => p.id === productId);
     if (!product) return;
     
-    const details = `
-📦 <strong>${product.name}</strong>
-
-Idadi: ${product.quantity}
-Bei ya Kuuza: ${formatCurrency(product.price)}
-Bei ya Ununuzi: ${formatCurrency(product.cost)}
-Faida kwa Kipande: ${formatCurrency(product.price - product.cost)}
-Faida kwa Asilimia: ${Math.round(((product.price - product.cost) / product.cost) * 100)}%
-
-Jumla ya Thamani: ${formatCurrency(product.quantity * product.price)}
-    `;
-    
-    const action = prompt(details + "\n\nChagua kitendo:\n1. Badilisha bei\n2. Badilisha idadi\n3. Fanya muuzo\n4. Ondoa", "3");
+    const action = prompt(
+        `${product.name}\nIdadi: ${product.quantity}\nBei: ${formatCurrency(product.price)}\n\nChagua:\n1. Fanya muuzo\n2. Badilisha bei\n3. Badilisha idadi\n4. Ondoa bidhaa\n\nIngiza namba (1-4):`,
+        "1"
+    );
     
     switch(action) {
-        case "1": changeProductPrice(productId); break;
-        case "2": changeProductQuantity(productId); break;
-        case "3": makeSaleFromProduct(productId); break;
+        case "1": makeSaleFromProduct(productId); break;
+        case "2": changeProductPrice(productId); break;
+        case "3": changeProductQuantity(productId); break;
         case "4": deleteProduct(productId); break;
         default: break;
     }
@@ -231,7 +227,7 @@ function makeSaleFromProduct(productId) {
     
     const quantity = parseInt(prompt(`Idadi ya ${product.name} (Zipo: ${product.quantity}):`, "1")) || 1;
     if (quantity > product.quantity) {
-        alert(`Una ${product.quantity} tu!`);
+        alert(`Una ${product.quantity} tu ya ${product.name}!`);
         return;
     }
     
@@ -255,9 +251,8 @@ function makeSaleFromProduct(productId) {
     product.quantity -= quantity;
     saveData('biashara_stock', stock);
     
-    // Refresh everything
-    refreshStock();
     refreshSales();
+    refreshStock();
     refreshBuyList();
     updateCashCalculation();
     
@@ -305,95 +300,51 @@ function deleteProduct(productId) {
     }
 }
 
-function showProductMenu(event, productId) {
-    event.preventDefault();
-    
-    const menu = `
-Chagua kitendo:
-1. Ongeza idadi
-2. Punguza idadi
-3. Badilisha bei
-4. Fanya muuzo
-5. Ondoa
-`;
-    
-    const choice = prompt(menu, "1");
-    const product = stock.find(p => p.id === productId);
-    
-    switch(choice) {
-        case "1": 
-            const addQty = parseInt(prompt(`Ongeza idadi gani ya ${product.name}?`, "10"));
-            if (addQty > 0) {
-                product.quantity += addQty;
-                saveData('biashara_stock', stock);
-                refreshStock();
-                alert(`✅ ${addQty} ${product.name} zimeongezwa`);
-            }
-            break;
-        case "2":
-            const reduceQty = parseInt(prompt(`Punguza idadi gani ya ${product.name}?`, "1"));
-            if (reduceQty > 0 && reduceQty <= product.quantity) {
-                product.quantity -= reduceQty;
-                saveData('biashara_stock', stock);
-                refreshStock();
-                alert(`✅ ${reduceQty} ${product.name} zimepunguzwa`);
-            }
-            break;
-        case "3": changeProductPrice(productId); break;
-        case "4": makeSaleFromProduct(productId); break;
-        case "5": deleteProduct(productId); break;
-    }
-    }
-
 // =========== SALES MANAGEMENT ===========
 function refreshSales() {
     const today = new Date().toDateString();
     const todaySales = sales.filter(sale => new Date(sale.date).toDateString() === today);
     const totalSales = todaySales.reduce((sum, sale) => sum + sale.total, 0);
     
+    // Update stats
     document.getElementById('today-sales').textContent = formatCurrency(totalSales);
     document.getElementById('sales-count').textContent = todaySales.length;
     document.getElementById('cash-sales-total').textContent = formatCurrency(totalSales);
     
+    // Update sales list
     const salesList = document.getElementById('sales-list');
     if (todaySales.length === 0) {
         salesList.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">Bado hakuna mauzo leo</div>';
         return;
     }
     
-salesList.innerHTML = todaySales.map(sale => `
-    <div class="item" onclick="showSaleDetails(${sale.id})" 
-         oncontextmenu="showSaleMenu(event, ${sale.id})">
-        <div class="item-info">
-            <div class="item-name">${sale.customer}</div>
-            <div class="item-detail">${sale.product} × ${sale.quantity} | ${sale.time}</div>
+    salesList.innerHTML = todaySales.map(sale => `
+        <div class="item" onclick="showSaleMenu(${sale.id})">
+            <div class="item-info">
+                <div class="item-name">${sale.customer}</div>
+                <div class="item-detail">${sale.product} × ${sale.quantity} | ${sale.time}</div>
+            </div>
+            <div class="item-amount">${formatCurrency(sale.total)}</div>
         </div>
-        <div class="item-amount">${formatCurrency(sale.total)}</div>
-    </div>
-`).join('');
+    `).join('');
+    
+    updateCashCalculation();
+}
 
-// Add these functions:
-function showSaleDetails(saleId) {
+function showSaleMenu(saleId) {
     const sale = sales.find(s => s.id === saleId);
     if (!sale) return;
     
-    const details = `
-💰 <strong>Muuzo</strong>
-
-Mteja: ${sale.customer}
-Bidhaa: ${sale.product}
-Idadi: ${sale.quantity}
-Jumla: ${formatCurrency(sale.total)}
-Tarehe: ${new Date(sale.date).toLocaleDateString('sw-TZ')}
-Muda: ${sale.time}
-    `;
-    
-    const action = prompt(details + "\n\nKitendo:\n1. Badilisha\n2. Ondoa\n3. Rudisha bidhaa", "2");
+    const action = prompt(
+        `${sale.customer} - ${sale.product} × ${sale.quantity}\nJumla: ${formatCurrency(sale.total)}\nMuda: ${sale.time}\n\nChagua:\n1. Badilisha\n2. Ondoa\n3. Rudisha bidhaa\n\nIngiza namba (1-3):`,
+        "1"
+    );
     
     switch(action) {
         case "1": editSale(saleId); break;
         case "2": deleteSale(saleId); break;
         case "3": returnProduct(saleId); break;
+        default: break;
     }
 }
 
@@ -418,7 +369,7 @@ function editSale(saleId) {
             // Update stock
             product.quantity -= quantityDiff;
             sale.quantity = newQuantity;
-            sale.total = newQuantity * sale.total / sale.quantity; // Adjust total
+            sale.total = newQuantity * (sale.total / sale.quantity); // Adjust total
         }
     }
     
@@ -486,27 +437,6 @@ function returnProduct(saleId) {
             alert(`✅ ${returnQty} ${sale.product} zimerudishwa kwenye hisa`);
         }
     }
-}
-
-function showSaleMenu(event, saleId) {
-    event.preventDefault();
-    const sale = sales.find(s => s.id === saleId);
-    if (!sale) return;
-    
-    const choice = prompt(`Muuzo: ${sale.customer} - ${sale.product}\n1. Tumia ujumbe\n2. Tuma risiti\n3. Ondoa`, "1");
-    
-    switch(choice) {
-        case "1":
-            const message = `Habari ${sale.customer}, asante kwa kununua ${sale.product} leo.`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-            break;
-        case "2":
-            // Generate receipt
-            const receipt = `RISITI\nMteja: ${sale.customer}\nBidhaa: ${sale.product}\nIdadi: ${sale.quantity}\nJumla: ${formatCurrency(sale.total)}\nAsante!`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(receipt)}`, '_blank');
-            break;
-        case "3": deleteSale(saleId); break;
-    }
     }
 
 // =========== CASH MANAGEMENT ===========
@@ -519,6 +449,7 @@ function refreshCash() {
     document.getElementById('morning-cash').value = cash.morning || '';
     document.getElementById('expenses').value = cash.expenses || '';
     document.getElementById('cash-sales-total').textContent = formatCurrency(totalSales);
+    
     updateCashCalculation();
 }
 
@@ -538,7 +469,12 @@ function saveCash() {
     const morningCash = parseFloat(document.getElementById('morning-cash').value) || 0;
     const expenses = parseFloat(document.getElementById('expenses').value) || 0;
     
-    cash = { morning: morningCash, expenses: expenses, lastUpdated: new Date().toISOString() };
+    cash = {
+        morning: morningCash,
+        expenses: expenses,
+        lastUpdated: new Date().toISOString()
+    };
+    
     saveData('biashara_cash', cash);
     alert('✅ Fedha zimehifadhiwa!');
 }
@@ -548,12 +484,12 @@ function refreshDebts() {
     const debtList = document.getElementById('debt-list');
     
     if (debts.length === 0) {
-        debtList.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">Hakuna madeni</div>';
+        debtList.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">Hakuna madeni kwa sasa</div>';
         return;
     }
     
     debtList.innerHTML = debts.map(debt => `
-        <div class="item">
+        <div class="item" onclick="showDebtMenu(${debt.id})">
             <div class="item-info">
                 <div class="item-name">${debt.customer}</div>
                 <div class="item-detail">${debt.date} ${debt.phone ? `| ${debt.phone}` : ''}</div>
@@ -563,40 +499,74 @@ function refreshDebts() {
     `).join('');
 }
 
-function showAddDebtForm() {
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    document.getElementById('add-debt-form').classList.add('active');
+function showDebtMenu(debtId) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+    
+    const action = prompt(
+        `${debt.customer}\nDeni: ${formatCurrency(debt.amount)}\nTarehe: ${debt.date}\n\nChagua:\n1. Lipa deni\n2. Badilisha\n3. Ondoa\n\nIngiza namba (1-3):`,
+        "1"
+    );
+    
+    switch(action) {
+        case "1": payDebt(debtId); break;
+        case "2": editDebt(debtId); break;
+        case "3": deleteDebt(debtId); break;
+        default: break;
+    }
 }
 
-function hideAddDebtForm() {
-    document.getElementById('add-debt-form').classList.remove('active');
-    document.getElementById('deni').classList.add('active');
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.getAttribute('data-tab') === 'deni') btn.classList.add('active');
-    });
+function payDebt(debtId) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+    
+    const amountPaid = parseFloat(prompt(`Kiasi kilicholipwa (deni: ${formatCurrency(debt.amount)}):`, debt.amount));
+    if (amountPaid && amountPaid > 0) {
+        if (amountPaid >= debt.amount) {
+            // Full payment
+            alert(`✅ ${debt.customer} amelipa deni lote la ${formatCurrency(debt.amount)}`);
+            const debtIndex = debts.findIndex(d => d.id === debtId);
+            debts.splice(debtIndex, 1);
+        } else {
+            // Partial payment
+            debt.amount -= amountPaid;
+            alert(`✅ ${debt.customer} amelipa ${formatCurrency(amountPaid)}, bado ana ${formatCurrency(debt.amount)}`);
+        }
+        
+        saveData('biashara_debts', debts);
+        refreshDebts();
+    }
 }
 
-function addDebt() {
-    const customer = document.getElementById('debt-customer').value;
-    const amount = parseInt(document.getElementById('debt-amount').value) || 0;
-    const phone = document.getElementById('debt-phone').value;
+function editDebt(debtId) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
     
-    if (!customer || amount <= 0) { alert('Ingiza jina na kiasi'); return; }
+    const newAmount = parseInt(prompt(`Kiasi kipya cha deni (sasa: ${formatCurrency(debt.amount)}):`, debt.amount));
+    if (newAmount && newAmount > 0) debt.amount = newAmount;
     
-    debts.push({ id: Date.now(), customer, amount, phone, date: new Date().toLocaleDateString('sw-TZ') });
+    const newPhone = prompt(`Namba mpya ya simu (sasa: ${debt.phone || 'Hakuna'}):`, debt.phone || '');
+    if (newPhone !== null) debt.phone = newPhone;
+    
     saveData('biashara_debts', debts);
-    
-    document.getElementById('debt-customer').value = '';
-    document.getElementById('debt-amount').value = '';
-    document.getElementById('debt-phone').value = '';
-    
-    hideAddDebtForm();
     refreshDebts();
-    alert(`✅ Deni la ${formatCurrency(amount)} limeongezwa`);
-      }
+    alert("✅ Deni limebadilishwa");
+}
 
-      // =========== BUY LIST MANAGEMENT ===========
+function deleteDebt(debtId) {
+    if (!confirm("Unahakika unataka kufuta deni hili?")) return;
+    
+    const debtIndex = debts.findIndex(d => d.id === debtId);
+    if (debtIndex !== -1) {
+        const debt = debts[debtIndex];
+        debts.splice(debtIndex, 1);
+        saveData('biashara_debts', debts);
+        refreshDebts();
+        alert(`✅ Deni la ${debt.customer} limefutwa`);
+    }
+}
+
+// =========== BUY LIST MANAGEMENT ===========
 function refreshBuyList() {
     const buyList = document.getElementById('buy-list');
     let itemsToBuy = [];
@@ -606,7 +576,12 @@ function refreshBuyList() {
         if (item.quantity <= item.minStock) {
             const needed = item.minStock * 3 - item.quantity;
             const cost = needed * item.cost;
-            itemsToBuy.push({ name: item.name, needed, current: item.quantity, cost });
+            itemsToBuy.push({
+                name: item.name,
+                needed: needed,
+                current: item.quantity,
+                cost: cost
+            });
             totalCost += cost;
         }
     });
@@ -614,7 +589,7 @@ function refreshBuyList() {
     document.getElementById('total-cost').textContent = formatCurrency(totalCost);
     
     if (itemsToBuy.length === 0) {
-        buyList.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">Huna hitaji la kununua</div>';
+        buyList.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">Huna hitaji la kununua bidhaa kwa sasa</div>';
         return;
     }
     
@@ -637,15 +612,27 @@ function createOrder() {
         if (item.quantity <= item.minStock) {
             const needed = item.minStock * 3 - item.quantity;
             const cost = needed * item.cost;
-            itemsToBuy.push({ name: item.name, needed, cost });
+            itemsToBuy.push({
+                name: item.name,
+                needed: needed,
+                cost: cost
+            });
             totalCost += cost;
         }
     });
     
-    if (itemsToBuy.length === 0) { alert('Huna hitaji la kununua'); return; }
+    if (itemsToBuy.length === 0) {
+        alert('Huna hitaji la kununua bidhaa kwa sasa');
+        return;
+    }
     
-    const orderText = itemsToBuy.map(item => `${item.name}: ${item.needed}`).join(', ');
-    const message = `Habari, nahitaji kununua: ${orderText}. Jumla: ${formatCurrency(totalCost)}.`;
+    const orderText = itemsToBuy.map(item => 
+        `${item.name}: ${item.needed}`
+    ).join(', ');
+    
+    const message = `Habari, nahitaji kununua: ${orderText}. Jumla ya takriban: ${formatCurrency(totalCost)}.`;
+    
+    // Open WhatsApp with message
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
 }
@@ -653,33 +640,209 @@ function createOrder() {
 // =========== QUICK EXPENSE ===========
 function quickExpense() {
     const amount = parseFloat(prompt('Kiasi cha matumizi (TZS):', '')) || 0;
-    const reason = prompt('Sababu:', '') || 'Matumizi';
+    const reason = prompt('Sababu ya matumizi (mfano: Umeme, Usafiri):', '') || 'Matumizi';
     
-    if (amount <= 0) { alert('Ingiza kiasi'); return; }
+    if (amount <= 0) {
+        alert('Tafadhali ingiza kiasi cha matumizi');
+        return;
+    }
     
+    // Update expenses in cash
     const currentExpenses = cash.expenses || 0;
     cash.expenses = currentExpenses + amount;
     saveData('biashara_cash', cash);
     
+    // Update cash display
     document.getElementById('expenses').value = cash.expenses;
     updateCashCalculation();
-    alert(`✅ ${reason}: ${formatCurrency(amount)}`);
+    
+    alert(`✅ Matumizi: ${reason} - ${formatCurrency(amount)} yameongezwa`);
+}
+
+// =========== QUICK SALE (from bottom button) ===========
+function quickSale() {
+    if (stock.length === 0) {
+        alert('Kwanza ongeza bidhaa zako kwenye kichupo cha "Bidhaa"');
+        return;
+    }
+    
+    const customer = prompt('Jina la mteja:') || 'Mteja';
+    const productNames = stock.map(item => item.name).join(', ');
+    const productName = prompt(`Bidhaa gani? (${productNames}):`);
+    
+    const product = stock.find(item => item.name.toLowerCase() === productName?.toLowerCase());
+    if (!product) {
+        alert('Bidhaa hiyo haipo. Tafadhali chagua moja ya bidhaa zilizopo.');
+        return;
+    }
+    
+    const quantity = parseInt(prompt(`Idadi ya ${product.name}:`, '1')) || 1;
+    
+    if (quantity > product.quantity) {
+        alert(`Samahani, una ${product.quantity} tu ya ${product.name}`);
+        return;
+    }
+    
+    const total = quantity * product.price;
+    
+    // Add sale
+    const newSale = {
+        id: Date.now(),
+        customer: customer,
+        product: product.name,
+        quantity: quantity,
+        total: total,
+        date: new Date().toISOString(),
+        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+    };
+    
+    sales.push(newSale);
+    saveData('biashara_sales', sales);
+    
+    // Update stock
+    product.quantity -= quantity;
+    saveData('biashara_stock', stock);
+    
+    // Refresh displays
+    refreshSales();
+    refreshStock();
+    refreshBuyList();
+    updateCashCalculation();
+    
+    alert(`✅ ${customer}: ${product.name} × ${quantity} = ${formatCurrency(total)}`);
 }
 
 // =========== EXPORT DATA ===========
 function exportData() {
-    const allData = { stock, sales, debts, cash, exported: new Date().toISOString() };
+    const allData = {
+        stock: stock,
+        sales: sales,
+        debts: debts,
+        cash: cash,
+        exported: new Date().toISOString()
+    };
+    
     const dataStr = JSON.stringify(allData, null, 2);
     const dataBlob = new Blob([dataStr], {type: 'application/json'});
     const url = URL.createObjectURL(dataBlob);
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `biashara-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `biashara-data-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+// =========== PRODUCT FORM FUNCTIONS ===========
+function showAddProductForm() {
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.getElementById('add-product-form').classList.add('active');
+}
+
+function hideAddProductForm() {
+    document.getElementById('add-product-form').classList.remove('active');
+    document.getElementById('bidhaa').classList.add('active');
+    
+    // Reset active tab button
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-tab') === 'bidhaa') {
+            btn.classList.add('active');
+        }
+    });
+}
+
+function addProduct() {
+    const name = document.getElementById('product-name').value;
+    const quantity = parseInt(document.getElementById('product-quantity').value) || 0;
+    const price = parseInt(document.getElementById('product-price').value) || 0;
+    const cost = parseInt(document.getElementById('product-cost').value) || 0;
+    
+    if (!name) {
+        alert('Tafadhali ingiza jina la bidhaa');
+        return;
+    }
+    
+    const newProduct = {
+        id: Date.now(),
+        name: name,
+        quantity: quantity,
+        price: price,
+        cost: cost,
+        minStock: 10
+    };
+    
+    stock.push(newProduct);
+    saveData('biashara_stock', stock);
+    
+    // Clear form
+    document.getElementById('product-name').value = '';
+    document.getElementById('product-quantity').value = '';
+    document.getElementById('product-price').value = '';
+    document.getElementById('product-cost').value = '';
+    
+    hideAddProductForm();
+    refreshStock();
+    refreshBuyList();
+    
+    alert(`✅ ${name} imeongezwa kwenye bidhaa zako`);
+}
+
+// =========== DEBT FORM FUNCTIONS ===========
+function showAddDebtForm() {
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.getElementById('add-debt-form').classList.add('active');
+}
+
+function hideAddDebtForm() {
+    document.getElementById('add-debt-form').classList.remove('active');
+    document.getElementById('deni').classList.add('active');
+    
+    // Reset active tab button
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-tab') === 'deni') {
+            btn.classList.add('active');
+        }
+    });
+}
+
+function addDebt() {
+    const customer = document.getElementById('debt-customer').value;
+    const amount = parseInt(document.getElementById('debt-amount').value) || 0;
+    const phone = document.getElementById('debt-phone').value;
+    
+    if (!customer || amount <= 0) {
+        alert('Tafadhali ingiza jina la mteja na kiasi cha deni');
+        return;
+    }
+    
+    const newDebt = {
+        id: Date.now(),
+        customer: customer,
+        amount: amount,
+        phone: phone,
+        date: new Date().toLocaleDateString('sw-TZ')
+    };
+    
+    debts.push(newDebt);
+    saveData('biashara_debts', debts);
+    
+    // Clear form
+    document.getElementById('debt-customer').value = '';
+    document.getElementById('debt-amount').value = '';
+    document.getElementById('debt-phone').value = '';
+    
+    hideAddDebtForm();
+    refreshDebts();
+    
+    alert(`✅ Deni la ${formatCurrency(amount)} limeongezwa kwa ${customer}`);
 }
 
 // =========== UTILITY FUNCTIONS ===========
@@ -692,16 +855,18 @@ function formatCurrency(amount) {
 }
 
 // =========== INITIAL LOAD ===========
+// Load initial data
 refreshStock();
 refreshSales();
 refreshCash();
 refreshDebts();
 refreshBuyList();
 
+// Set up event listeners for cash calculation
 document.getElementById('morning-cash').addEventListener('input', updateCashCalculation);
 document.getElementById('expenses').addEventListener('input', updateCashCalculation);
 
-console.log('📱 Biashara Sahihi imeanza!');
+console.log('📱 Biashara Sahihi loaded successfully!');
 </script>
 </body>
 </html>
