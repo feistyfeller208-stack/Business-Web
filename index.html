@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BizBook</title>
+    <title>BizBook - Take Control Over Your Business</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
         body { background: #f5f5f5; color: #333; padding-bottom: 80px; }
@@ -39,7 +39,8 @@
 <body>
     <header>
         <h1>📓 BizBook</h1>
-        </header>
+        <div>Take Control Over Your Business</div>
+    </header>
     
     <div class="tabs">
         <button class="tab-btn active" data-tab="bidhaa"><span>📦</span><span>Products</span></button>
@@ -53,7 +54,7 @@
         <div class="card">
             <h3>📦 Your Products</h3>
             <div class="item-list" id="stock-list"></div>
-            <button class="btn" onclick="addProduct()">+ Add Product</button>
+            <button class="btn" onclick="showAddProductMenu()">+ Add Product</button>
         </div>
     </div>
     
@@ -99,10 +100,12 @@
     <div class="action-bar">
         <button class="action-btn" onclick="quickSale()">💰 Quick Sale</button>
         <button class="action-btn" onclick="quickExpense()">📝 Expense</button>
-        <button class="action-btn" onclick="exportData()">📤 Export</button>
-                </div>
+        <button class="action-btn" onclick="exportMenu()">📤 Export</button>
+    </div>
+    
+    <script>
 
-        <script>
+        // =========== DATA STORAGE ===========
 function saveData(key, data) { 
     localStorage.setItem(key, JSON.stringify(data)); 
 }
@@ -121,11 +124,12 @@ if (stock.length === 0) {
     stock = [
         { id: 1, name: "Soda", quantity: 24, price: 1000, cost: 700, minStock: 10, unit: "vipande", orderQuantity: 24 },
         { id: 2, name: "Water", quantity: 12, price: 500, cost: 300, minStock: 5, unit: "vipande", orderQuantity: 12 },
-        { id: 3, name: "Beans", quantity: 100, price: 2500, cost: 2000, minStock: 20, unit: "kilo", orderQuantity: 50 }
+        { id: 3, name: "Porcelain Cups", quantity: 240, price: 1500, cost: 1000, minStock: 48, unit: "vipande", cartonSize: 24, wholeCartons: 9, openItems: 24, itemType: "cup", cartonCost: 24000 }
     ];
     saveData('bizbook_stock', stock);
 }
 
+// =========== TAB SWITCHING ===========
 document.querySelectorAll('.tab-btn').forEach(button => {
     button.addEventListener('click', () => {
         const tabId = button.getAttribute('data-tab');
@@ -148,182 +152,8 @@ document.querySelectorAll('.tab-btn').forEach(button => {
     });
 });
 
-function addProduct() {
-    const saleMethod = prompt(
-        "How is this product SOLD?\n\n" +
-        "1. By piece (individual items)\n" +
-        "2. By weight (kilos, grams)\n" +
-        "3. By volume (liters, milliliters)\n" +
-        "4. From cartons/boxes\n" +
-        "5. By length (meters, yards)\n" +
-        "6. Other way\n\n" +
-        "Enter number (1-6):",
-        "1"
-    );
-    
-    switch(saleMethod) {
-        case "1": addPieceProduct(); break;
-        case "2": addWeightProduct(); break;
-        case "3": addVolumeProduct(); break;
-        case "4": addCartonProduct(); break;
-        case "5": addLengthProduct(); break;
-        case "6": addCustomProduct(); break;
-        default: addPieceProduct(); break;
-    }
-}
-
-function addPieceProduct() {
-    const name = prompt("Product name:", "");
-    if (!name) return;
-    
-    const quantity = parseInt(prompt("Current quantity (pieces):", "100")) || 0;
-    const price = parseInt(prompt("Selling price per piece (TZS):", "1000")) || 0;
-    const cost = parseInt(prompt("Purchase cost per piece (TZS):", "700")) || 0;
-    
-    stock.push({
-        id: Date.now(),
-        name: name,
-        quantity: quantity,
-        price: price,
-        cost: cost,
-        unit: "pcs",
-        minStock: Math.ceil(quantity * 0.3),
-        orderQuantity: quantity
-    });
-    
-    saveData('bizbook_stock', stock);
-    refreshStock();
-    refreshBuyList();
-    
-    alert(`✅ ${name} added!\n${quantity} pieces\nSell: ${formatCurrency(price)}/piece`);
-}
-
-function addCartonProduct() {
-    const name = prompt("Product name:", "");
-    if (!name) return;
-    
-    const itemsPerCarton = parseInt(prompt("How many items in ONE carton/box?", "24")) || 24;
-    const cartonCost = parseInt(prompt("Cost per CARTON (TZS):", "24000")) || 0;
-    const itemPrice = parseInt(prompt("Selling price per ITEM (TZS):", "1500")) || 0;
-    
-    const costPerItem = cartonCost / itemsPerCarton;
-    
-    const cartonsInStock = parseInt(prompt("How many cartons do you have?", "10")) || 0;
-    const totalItems = cartonsInStock * itemsPerCarton;
-    
-    const openItems = parseInt(prompt("How many items are already opened/sold individually?", "0")) || 0;
-    
-    stock.push({
-        id: Date.now(),
-        name: name,
-        quantity: totalItems,
-        price: itemPrice,
-        cost: costPerItem,
-        minStock: itemsPerCarton * 2,
-        orderQuantity: itemsPerCarton,
-        unit: "pcs",
-        cartonSize: itemsPerCarton,
-        cartonCost: cartonCost,
-        wholeCartons: cartonsInStock - Math.ceil(openItems / itemsPerCarton),
-        openItems: openItems % itemsPerCarton,
-        itemType: "item"
-    });
-    
-    saveData('bizbook_stock', stock);
-    refreshStock();
-    refreshBuyList();
-    
-    alert(`✅ ${name} added!\n${cartonsInStock} cartons (${totalItems} items)\nBuy carton: ${formatCurrency(cartonCost)}\nSell per item: ${formatCurrency(itemPrice)}`);
-}
-
-function addWeightProduct() {
-    const name = prompt("Product name:", "");
-    if (!name) return;
-    
-    const unitType = prompt("Weight unit:\n1. Kilos (kg)\n2. Grams (g)\n3. Tonnes\n\nEnter number:", "1");
-    const units = ['kg', 'g', 'tonne'];
-    const unit = units[parseInt(unitType) - 1] || 'kg';
-    
-    const quantity = parseFloat(prompt(`Current quantity in ${unit}:`, unit === 'kg' ? "100" : "1000")) || 0;
-    const price = parseInt(prompt(`Selling price per ${unit} (TZS):`, "2000")) || 0;
-    const cost = parseInt(prompt(`Purchase cost per ${unit} (TZS):`, "1500")) || 0;
-    
-    stock.push({
-        id: Date.now(),
-        name: name,
-        quantity: quantity,
-        price: price,
-        cost: cost,
-        unit: unit,
-        minStock: Math.ceil(quantity * 0.2),
-        orderQuantity: quantity
-    });
-    
-    saveData('bizbook_stock', stock);
-    refreshStock();
-    refreshBuyList();
-    
-    alert(`✅ ${name} added!\n${quantity}${unit}\nSell: ${formatCurrency(price)}/${unit}`);
-}
-
-function addVolumeProduct() {
-    const name = prompt("Product name:", "");
-    if (!name) return;
-    
-    const unitType = prompt("Volume unit:\n1. Liters (L)\n2. Milliliters (ml)\n\nEnter number:", "1");
-    const units = ['liter', 'ml'];
-    const unit = units[parseInt(unitType) - 1] || 'liter';
-    
-    const quantity = parseFloat(prompt(`Current quantity in ${unit}:`, unit === 'liter' ? "20" : "1000")) || 0;
-    const price = parseInt(prompt(`Selling price per ${unit} (TZS):`, "3000")) || 0;
-    const cost = parseInt(prompt(`Purchase cost per ${unit} (TZS):`, "2000")) || 0;
-    
-    stock.push({
-        id: Date.now(),
-        name: name,
-        quantity: quantity,
-        price: price,
-        cost: cost,
-        unit: unit,
-        minStock: Math.ceil(quantity * 0.2),
-        orderQuantity: quantity
-    });
-    
-    saveData('bizbook_stock', stock);
-    refreshStock();
-    refreshBuyList();
-    
-    alert(`✅ ${name} added!\n${quantity}${unit}\nSell: ${formatCurrency(price)}/${unit}`);
-}
-
-function addCustomProduct() {
-    const name = prompt("Product name:", "");
-    if (!name) return;
-    
-    const customUnit = prompt("What unit do you use? (e.g., bunch, bundle, pair):", "bunch");
-    const quantity = parseFloat(prompt(`Current quantity in ${customUnit}:`, "50")) || 0;
-    const price = parseInt(prompt(`Selling price per ${customUnit} (TZS):`, "2000")) || 0;
-    const cost = parseInt(prompt(`Purchase cost per ${customUnit} (TZS):`, "1500")) || 0;
-    
-    stock.push({
-        id: Date.now(),
-        name: name,
-        quantity: quantity,
-        price: price,
-        cost: cost,
-        unit: customUnit,
-        minStock: Math.ceil(quantity * 0.3),
-        orderQuantity: quantity
-    });
-    
-    saveData('bizbook_stock', stock);
-    refreshStock();
-    refreshBuyList();
-    
-    alert(`✅ ${name} added!\n${quantity} ${customUnit}\nSell: ${formatCurrency(price)}/${customUnit}`);
-}
-
-            function refreshStock() {
+// =========== PRODUCT MANAGEMENT ===========
+function refreshStock() {
     const stockList = document.getElementById('stock-list');
     
     if (stock.length === 0) {
@@ -332,6 +162,7 @@ function addCustomProduct() {
     }
     
     stockList.innerHTML = stock.map(item => {
+        // Check if it's a carton product
         if (item.cartonSize) {
             const fullCartons = Math.floor((item.quantity - (item.openItems || 0)) / item.cartonSize);
             const itemType = item.itemType || "item";
@@ -344,13 +175,13 @@ function addCustomProduct() {
             }
             
             return `
-                <div class="item" onclick="showProductMenu(${item.id})">
+                <div class="item" onclick="sellCartonProduct(${item.id})">
                     <div class="item-info">
                         <div class="item-name">${item.name} 📦 ${badge}</div>
                         <div class="item-detail">
                             ${item.quantity} ${itemType}s total<br>
                             ${fullCartons} full cartons + ${item.openItems || 0} open ${itemType}s<br>
-                            Sell: ${formatCurrency(item.price)}/${itemType}
+                            Sell: ${formatCurrency(item.price)}/${itemType} | ${formatCurrency(item.price * item.cartonSize)}/carton
                         </div>
                     </div>
                     <div class="item-amount">
@@ -361,6 +192,7 @@ function addCustomProduct() {
             `;
         }
         
+        // Regular product display
         let badge = '';
         const stockPercent = (item.quantity / item.minStock) * 100;
         
@@ -390,46 +222,117 @@ function addCustomProduct() {
     }).join('');
 }
 
-function showProductMenu(productId) {
-    const product = stock.find(p => p.id === productId);
-    if (!product) return;
-    
-    const isCarton = product.cartonSize;
-    
-    const options = isCarton 
-        ? `1. Make sale\n2. Change price\n3. Change quantity\n4. Set reorder logic\n5. View carton details\n6. Remove product`
-        : `1. Make sale\n2. Change price\n3. Change quantity\n4. Set reorder logic\n5. Remove product`;
-    
-    const action = prompt(
-        `${product.name}\nQuantity: ${product.quantity}${product.unit}\nPrice: ${formatCurrency(product.price)}/${product.unit}\nMin stock: ${product.minStock}${product.unit}\n\nChoose:\n${options}\n\nEnter number:`,
+function showAddProductMenu() {
+    const choice = prompt(
+        `Add product as:\n1. Regular product (pieces, kilos, liters)\n2. Carton product (cups, bowls, pens in cartons)\n\nEnter choice:`,
         "1"
     );
     
-    if (isCarton) {
-        switch(action) {
-            case "1": makeCartonSale(productId); break;
-            case "2": changeProductPrice(productId); break;
-            case "3": changeProductQuantity(productId); break;
-            case "4": setupSmartStock(productId); break;
-            case "5": showCartonDetails(productId); break;
-            case "6": deleteProduct(productId); break;
-            default: break;
-        }
-    } else {
-        switch(action) {
-            case "1": makeSaleWithUnits(productId); break;
-            case "2": changeProductPrice(productId); break;
-            case "3": changeProductQuantity(productId); break;
-            case "4": setupSmartStock(productId); break;
-            case "5": deleteProduct(productId); break;
-            default: break;
-        }
+    if (choice === "1") {
+        addProductWithUnits();
+    } else if (choice === "2") {
+        addCartonProduct();
     }
 }
 
-function makeCartonSale(productId) {
+function addProductWithUnits() {
+    const name = prompt("Product name:", "Soda");
+    if (!name) return;
+    
+    const unitType = prompt(
+        "How do you measure?\n1. Pieces (tablets, single items)\n2. Kilos (beans, sugar)\n3. Bottles (single bottles)\n4. Liters (oil, liquids)\n5. Bags (flour, rice)\n\nEnter number (1-5):",
+        "1"
+    );
+    
+    const units = ['vipande', 'kilo', 'kopo', 'lita', 'mfuko'];
+    const unit = units[parseInt(unitType) - 1] || 'vipande';
+    
+    const quantity = parseFloat(prompt(`Quantity in ${unit}:`, unit === 'vipande' ? "24" : "100")) || 0;
+    const cost = parseInt(prompt(`Purchase price per ${unit} (TZS):`, unit === 'vipande' ? "700" : "2000")) || 0;
+    const price = parseInt(prompt(`Selling price per ${unit} (TZS):`, unit === 'vipande' ? "1000" : "2500")) || 0;
+    
+    // Set smart default min stock based on unit type
+    let minStock;
+    if (unit === 'kilo' || unit === 'lita') {
+        minStock = Math.ceil(quantity * 0.2); // 20% for bulk
+    } else if (unit === 'kopo') {
+        minStock = Math.ceil(quantity * 0.1); // 10% for packaged
+    } else {
+        minStock = Math.ceil(quantity * 0.3); // 30% for pieces
+    }
+    
+    // Set default order quantity
+    const orderQuantity = quantity;
+    
+    stock.push({
+        id: Date.now(),
+        name: name,
+        quantity: quantity,
+        price: price,
+        cost: cost,
+        minStock: minStock,
+        unit: unit,
+        orderQuantity: orderQuantity,
+        streetLogic: `${minStock}${unit} → ${orderQuantity}${unit}`
+    });
+    
+    saveData('bizbook_stock', stock);
+    refreshStock();
+    refreshBuyList();
+    
+    alert(`✅ ${name} added!\n${quantity}${unit}\nCost: ${formatCurrency(cost)}/${unit}\nSell: ${formatCurrency(price)}/${unit}`);
+}
+
+function addCartonProduct() {
+    const name = prompt("Product name:", "Porcelain Cups");
+    
+    const itemsPerCarton = parseInt(prompt("Items in one carton:", "24")) || 24;
+    const cartonCost = parseInt(prompt("Cost per CARTON (TZS):", "24000")) || 0;
+    const itemPrice = parseInt(prompt("Selling price per ITEM (TZS):", "1500")) || 0;
+    
+    // Calculate cost per item
+    const costPerItem = cartonCost / itemsPerCarton;
+    
+    // Ask initial stock
+    const cartonsInStock = parseInt(prompt("How many cartons do you have?", "10")) || 0;
+    const totalItems = cartonsInStock * itemsPerCarton;
+    
+    // Ask open items (items sold individually from opened cartons)
+    const openItems = parseInt(prompt("How many items are already opened/sold individually?", "0")) || 0;
+    
+    const itemType = prompt("What type of item? (cup, bowl, pen, etc.):", "cup");
+    
+    stock.push({
+        id: Date.now(),
+        name: name,
+        quantity: totalItems, // Total items in stock
+        price: itemPrice,     // Sell per item
+        cost: costPerItem,    // Cost per item
+        minStock: itemsPerCarton * 2, // Reorder when 2 cartons worth left
+        
+        // Carton tracking
+        unit: "vipande",      // Sell as individual items
+        cartonSize: itemsPerCarton,
+        cartonCost: cartonCost,
+        wholeCartons: cartonsInStock - Math.ceil(openItems / itemsPerCarton),
+        openItems: openItems % itemsPerCarton,
+        itemType: itemType,
+        
+        // Smart info
+        profitPerItem: itemPrice - costPerItem,
+        profitPerCarton: (itemPrice - costPerItem) * itemsPerCarton
+    });
+    
+    saveData('bizbook_stock', stock);
+    refreshStock();
+    refreshBuyList();
+    
+    alert(`✅ ${name} added!\n${cartonsInStock} cartons (${totalItems} ${itemType}s)\nBuy carton: ${formatCurrency(cartonCost)}\nSell per ${itemType}: ${formatCurrency(itemPrice)}\nProfit/carton: ${formatCurrency((itemPrice - costPerItem) * itemsPerCarton)}`);
+}
+
+function sellCartonProduct(productId) {
     const product = stock.find(p => p.id === productId);
-    if (!product || !product.cartonSize) return makeSaleWithUnits(productId);
+    if (!product || !product.cartonSize) return makeSaleFromProduct(productId);
     
     const customer = prompt("Customer name:", "Customer");
     const itemName = product.itemType || "item";
@@ -443,10 +346,30 @@ function makeCartonSale(productId) {
     let unit;
     
     switch(saleType) {
-        case "1": quantity = 1; unit = itemName; break;
-        case "2": quantity = product.cartonSize; unit = "carton"; break;
-        case "3": quantity = parseInt(prompt(`How many ${itemName}s? (Available: ${product.quantity}):`, "2")) || 0; unit = itemName + "s"; break;
-        default: return;
+        case "1": // Single item
+            quantity = 1;
+            unit = itemName;
+            break;
+            
+        case "2": // Whole carton
+            quantity = product.cartonSize;
+            unit = "carton";
+            // Update carton count
+            if (product.wholeCartons > 0) {
+                product.wholeCartons -= 1;
+            } else {
+                // Convert open items to carton sale
+                product.openItems = product.cartonSize - quantity;
+            }
+            break;
+            
+        case "3": // Multiple items
+            quantity = parseInt(prompt(`How many ${itemName}s? (Available: ${product.quantity}):`, "2")) || 0;
+            unit = itemName + "s";
+            break;
+            
+        default:
+            return;
     }
     
     if (quantity > product.quantity) {
@@ -456,17 +379,22 @@ function makeCartonSale(productId) {
     
     const total = quantity * product.price;
     
+    // Update stock
     product.quantity -= quantity;
     
-    if (product.cartonSize) {
-        if (product.openItems >= quantity) {
-            product.openItems -= quantity;
-        } else {
-            const remaining = quantity - product.openItems;
-            product.openItems = product.cartonSize - (remaining % product.cartonSize);
-            if (product.openItems === product.cartonSize) product.openItems = 0;
-            product.wholeCartons = Math.floor((product.quantity - product.openItems) / product.cartonSize);
-        }
+    // Update open items logic
+    if (product.openItems >= quantity) {
+        product.openItems -= quantity;
+    } else {
+        const remaining = quantity - product.openItems;
+        product.openItems = product.cartonSize - (remaining % product.cartonSize);
+        if (product.openItems === product.cartonSize) product.openItems = 0;
+    }
+    
+    // Auto-open new carton if needed
+    if (product.openItems > 0 && product.wholeCartons > 0 && product.openItems === product.cartonSize) {
+        product.wholeCartons -= 1;
+        product.openItems = 0;
     }
     
     const sale = {
@@ -476,6 +404,7 @@ function makeCartonSale(productId) {
         quantity: quantity,
         unit: unit,
         total: total,
+        cartonSale: saleType === "2",
         date: new Date().toISOString(),
         time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
     };
@@ -495,26 +424,32 @@ function makeCartonSale(productId) {
     alert(message);
 }
 
-function showCartonDetails(productId) {
+function showProductMenu(productId) {
     const product = stock.find(p => p.id === productId);
-    if (!product || !product.cartonSize) return;
+    if (!product) return;
     
-    const fullCartons = Math.floor((product.quantity - (product.openItems || 0)) / product.cartonSize);
-    
-    alert(
-        `📦 ${product.name} Carton Details:\n\n` +
-        `• Carton size: ${product.cartonSize} items\n` +
-        `• Cost per carton: ${formatCurrency(product.cartonCost)}\n` +
-        `• Cost per item: ${formatCurrency(product.cost)}\n` +
-        `• Sell per item: ${formatCurrency(product.price)}\n` +
-        `• Current stock: ${product.quantity} items\n` +
-        `• Full cartons: ${fullCartons}\n` +
-        `• Open items: ${product.openItems || 0}\n` +
-        `• Reorder at: ${product.minStock} items`
+    const action = prompt(
+        `${product.name}\nQuantity: ${product.quantity}${product.unit || ''}\nPrice: ${formatCurrency(product.price)}/${product.unit || 'unit'}\nMin stock: ${product.minStock}${product.unit || ''}\n\nChoose:\n1. Make sale\n2. Change price\n3. Change quantity\n4. Set reorder logic\n5. Remove product\n\nEnter number (1-5):`,
+        "1"
     );
+    
+    switch(action) {
+        case "1": 
+            if (product.cartonSize) {
+                sellCartonProduct(productId);
+            } else {
+                makeSaleFromProduct(productId);
+            }
+            break;
+        case "2": changeProductPrice(productId); break;
+        case "3": changeProductQuantity(productId); break;
+        case "4": setupSmartStock(productId); break;
+        case "5": deleteProduct(productId); break;
+        default: break;
+    }
 }
 
-function makeSaleWithUnits(productId) {
+function makeSaleFromProduct(productId) {
     const product = stock.find(p => p.id === productId);
     if (!product) return;
     
@@ -522,12 +457,12 @@ function makeSaleWithUnits(productId) {
     if (!customer) return;
     
     const quantity = parseFloat(prompt(
-        `${product.name} (available: ${product.quantity}${product.unit})\nPrice: ${formatCurrency(product.price)}/${product.unit}\n\nQuantity in ${product.unit}:`,
-        product.unit === 'pcs' ? "1" : product.unit === 'kg' ? "0.5" : "1"
+        `${product.name} (available: ${product.quantity}${product.unit || ''})\nPrice: ${formatCurrency(product.price)}/${product.unit || 'unit'}\n\nQuantity:`,
+        product.unit === 'vipande' ? "1" : product.unit === 'kilo' ? "0.5" : "1"
     )) || 0;
     
     if (quantity > product.quantity) {
-        alert(`Only ${product.quantity}${product.unit} of ${product.name} available!`);
+        alert(`Only ${product.quantity}${product.unit || ''} of ${product.name} available!`);
         return;
     }
     
@@ -538,7 +473,7 @@ function makeSaleWithUnits(productId) {
         customer: customer,
         product: product.name,
         quantity: quantity,
-        unit: product.unit,
+        unit: product.unit || '',
         total: total,
         date: new Date().toISOString(),
         time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
@@ -555,19 +490,19 @@ function makeSaleWithUnits(productId) {
     refreshBuyList();
     updateCashCalculation();
     
-    alert(`✅ ${customer} bought ${product.name} × ${quantity}${product.unit} = ${formatCurrency(total)}`);
-}
+    alert(`✅ ${customer} bought ${product.name} × ${quantity}${product.unit || ''} = ${formatCurrency(total)}`);
+    }
 
-function changeProductPrice(productId) {
+        function changeProductPrice(productId) {
     const product = stock.find(p => p.id === productId);
     if (!product) return;
     
-    const newPrice = parseInt(prompt(`New price for ${product.name} per ${product.unit} (current: ${formatCurrency(product.price)}/${product.unit}):`, product.price));
+    const newPrice = parseInt(prompt(`New price for ${product.name} per ${product.unit || 'unit'} (current: ${formatCurrency(product.price)}/${product.unit || 'unit'}):`, product.price));
     if (newPrice && newPrice > 0) {
         product.price = newPrice;
         saveData('bizbook_stock', stock);
         refreshStock();
-        alert(`✅ Price of ${product.name} changed: ${formatCurrency(newPrice)}/${product.unit}`);
+        alert(`✅ Price of ${product.name} changed: ${formatCurrency(newPrice)}/${product.unit || 'unit'}`);
     }
 }
 
@@ -575,19 +510,13 @@ function changeProductQuantity(productId) {
     const product = stock.find(p => p.id === productId);
     if (!product) return;
     
-    const newQuantity = parseFloat(prompt(`New quantity for ${product.name} in ${product.unit} (current: ${product.quantity}${product.unit}):`, product.quantity));
+    const newQuantity = parseFloat(prompt(`New quantity for ${product.name} (current: ${product.quantity}${product.unit || ''}):`, product.quantity));
     if (!isNaN(newQuantity) && newQuantity >= 0) {
         product.quantity = newQuantity;
-        
-        if (product.cartonSize) {
-            product.wholeCartons = Math.floor(newQuantity / product.cartonSize);
-            product.openItems = newQuantity % product.cartonSize;
-        }
-        
         saveData('bizbook_stock', stock);
         refreshStock();
         refreshBuyList();
-        alert(`✅ Quantity of ${product.name} changed: ${newQuantity}${product.unit}`);
+        alert(`✅ Quantity of ${product.name} changed: ${newQuantity}${product.unit || ''}`);
     }
 }
 
@@ -605,21 +534,22 @@ function deleteProduct(productId) {
     }
 }
 
+// =========== SMART STOCK SYSTEM ===========
 function setupSmartStock(productId) {
     const product = stock.find(p => p.id === productId);
     if (!product) return;
     
-    alert(`${product.name} (${product.quantity}${product.unit})`);
+    alert(`${product.name} (${product.quantity}${product.unit || ''})`);
     
     const logic = prompt(
-        `FOR ${product.name.toUpperCase()}:\n\nWhen should you reorder?\n\nExample:\n- Soda: "I have 24, I reorder when I have 10"\n- Beans: "I have 100kg, I reorder when I have 20kg"\n- Water: "I have 50 bottles, I reorder when I have 15"\n\nEnter YOUR minimum level:`,
+        `FOR ${product.name.toUpperCase()}:\n\nWhen should you reorder?\n\nExample:\n- Soda: "I have 24, I reorder when I have 10"\n- Porcelain cups: "I have 240 cups, I reorder when I have 48"\n\nEnter YOUR minimum level:`,
         product.minStock || Math.ceil(product.quantity * 0.2)
     );
     
     const minStock = parseInt(logic) || product.minStock;
     
     const orderAmount = prompt(
-        `When you have ${minStock}${product.unit}, how much do you buy?\n\nExample:\n- Small shop: "I buy 24 again (soda)"\n- Big shop: "I buy 100 again (soda)"\n- Farmer: "I buy 50kg again (beans)"\n\nEnter AMOUNT you buy at once:`,
+        `When you have ${minStock}${product.unit || ''}, how much do you buy?\n\nExample:\n- Small shop: "I buy 24 again (soda)"\n- Big shop: "I buy 100 again (soda)"\n- Porcelain: "I buy 5 cartons (120 cups)"\n\nEnter AMOUNT you buy at once:`,
         product.orderQuantity || product.quantity
     );
     
@@ -627,153 +557,15 @@ function setupSmartStock(productId) {
     
     product.minStock = minStock;
     product.orderQuantity = orderQuantity;
-    product.streetLogic = `${minStock}${product.unit} → ${orderQuantity}${product.unit}`;
+    product.streetLogic = `${minStock}${product.unit || ''} → ${orderQuantity}${product.unit || ''}`;
     
     saveData('bizbook_stock', stock);
     refreshStock();
     
-    alert(`✅ Set!\n\n${product.name}:\n• Reorder when: ${minStock}${product.unit}\n• Order amount: ${orderQuantity}${product.unit}\n\nSystem will remind you!`);
-    }
-
-            function showBuyOptions(productName) {
-    const product = stock.find(p => p.name === productName);
-    if (!product) return;
-    
-    const action = prompt(
-        `${product.name}\nNeed to buy: ${product.orderQuantity || (product.minStock * 3 - product.quantity)}${product.unit}\n\nChoose:\n1. Create WhatsApp order\n2. Change order amount\n3. Mark as bought\n\nEnter number (1-3):`,
-        "1"
-    );
-    
-    switch(action) {
-        case "1": createSmartOrder(); break;
-        case "2": 
-            const newAmount = parseInt(prompt(`New order amount for ${product.name} (current: ${product.orderQuantity}${product.unit}):`, product.orderQuantity));
-            if (newAmount && newAmount > 0) {
-                product.orderQuantity = newAmount;
-                saveData('bizbook_stock', stock);
-                refreshBuyList();
-                alert(`✅ Order amount updated: ${newAmount}${product.unit}`);
-            }
-            break;
-        case "3":
-            const addQuantity = product.orderQuantity || (product.minStock * 3 - product.quantity);
-            product.quantity += addQuantity;
-            saveData('bizbook_stock', stock);
-            refreshStock();
-            refreshBuyList();
-            alert(`✅ ${addQuantity}${product.unit} of ${product.name} added to stock`);
-            break;
-    }
-            }
-
-function createSmartOrder() {
-    let itemsToBuy = [];
-    let totalCost = 0;
-    let supplierMessage = "";
-    
-    stock.forEach(item => {
-        if (item.quantity <= item.minStock) {
-            const needed = item.orderQuantity || (item.minStock * 3 - item.quantity);
-            const cost = needed * item.cost;
-            
-            let orderText;
-            if (item.unit === 'kg' || item.unit === 'g' || item.unit === 'tonne') {
-                orderText = `${item.name}: ${needed}${item.unit}`;
-            } else if (item.unit === 'liter' || item.unit === 'ml') {
-                orderText = `${item.name}: ${needed}${item.unit}`;
-            } else {
-                orderText = `${item.name}: ${needed}`;
-            }
-            
-            itemsToBuy.push({
-                name: item.name,
-                needed: needed,
-                unit: item.unit,
-                cost: cost,
-                orderText: orderText
-            });
-            
-            totalCost += cost;
-            supplierMessage += `• ${orderText}\n`;
-        }
-    });
-    
-    if (itemsToBuy.length === 0) {
-        alert('Nothing to buy now');
-        return;
-    }
-    
-    const supplier = prompt(
-        `Buy from who?\n1. Bwana Juma\n2. Soda Business\n3. Other supplier\n\nEnter number or name:`,
-        "Bwana Juma"
-    );
-    
-    let supplierName = supplier;
-    if (supplier === '1') supplierName = "Bwana Juma";
-    if (supplier === '2') supplierName = "Soda Business";
-    
-    const message = `Habari ${supplierName},\n\nI need to buy:\n${supplierMessage}\nApprox total: ${formatCurrency(totalCost)}\n\nWhen can I pay you?`;
-    
-    const supplierPhone = prompt(
-        `${supplierName}'s phone (can leave empty):`,
-        "0712xxxxxx"
-    );
-    
-    if (supplierPhone && supplierPhone.length >= 9) {
-        window.open(`https://wa.me/${supplierPhone}?text=${encodeURIComponent(message)}`, '_blank');
-    } else {
-        navigator.clipboard.writeText(message);
-        alert(`✅ Order copied to clipboard!\n\nPaste in WhatsApp to ${supplierName}`);
-    }
-            }
-
-            function refreshBuyList() {
-    const buyList = document.getElementById('buy-list');
-    let itemsToBuy = [];
-    let totalCost = 0;
-    
-    stock.forEach(item => {
-        if (item.quantity <= item.minStock) {
-            const needed = item.orderQuantity || (item.minStock * 3 - item.quantity);
-            const cost = needed * item.cost;
-            
-            itemsToBuy.push({
-                id: item.id,
-                name: item.name,
-                needed: needed,
-                unit: item.unit,
-                current: item.quantity,
-                minStock: item.minStock,
-                cost: cost,
-                streetLogic: item.streetLogic || `${item.minStock}${item.unit} → ${needed}${item.unit}`
-            });
-            
-            totalCost += cost;
-        }
-    });
-    
-    document.getElementById('total-cost').textContent = formatCurrency(totalCost);
-    
-    if (itemsToBuy.length === 0) {
-        buyList.innerHTML = '<div style="color: #666; padding: 20px; text-align: center;">Nothing to buy now</div>';
-        return;
-    }
-    
-    buyList.innerHTML = itemsToBuy.map(item => `
-        <div class="item" onclick="showBuyOptions('${item.name}')">
-            <div class="item-info">
-                <div class="item-name">${item.name}</div>
-                <div class="item-detail">
-                    <strong>Now: ${item.current}${item.unit}</strong><br>
-                    <small>${item.streetLogic}</small><br>
-                    <small style="color: #e74c3c;">Need: ${item.needed}${item.unit}</small>
-                </div>
-            </div>
-            <div class="item-amount">${formatCurrency(item.cost)}</div>
-        </div>
-    `).join('');
+    alert(`✅ Set!\n\n${product.name}:\n• Reorder when: ${minStock}${product.unit || ''}\n• Order amount: ${orderQuantity}${product.unit || ''}\n\nSystem will remind you!`);
 }
 
+// =========== SALES MANAGEMENT ===========
 function refreshSales() {
     const today = new Date().toDateString();
     const todaySales = sales.filter(sale => new Date(sale.date).toDateString() === today);
@@ -802,6 +594,107 @@ function refreshSales() {
     updateCashCalculation();
 }
 
+function showSaleMenu(saleId) {
+    const sale = sales.find(s => s.id === saleId);
+    if (!sale) return;
+    
+    const action = prompt(
+        `${sale.customer} - ${sale.product} × ${sale.quantity}${sale.unit || ''}\nTotal: ${formatCurrency(sale.total)}\nTime: ${sale.time}\n\nChoose:\n1. Edit\n2. Delete\n3. Return product\n\nEnter number (1-3):`,
+        "1"
+    );
+    
+    switch(action) {
+        case "1": editSale(saleId); break;
+        case "2": deleteSale(saleId); break;
+        case "3": returnProduct(saleId); break;
+        default: break;
+    }
+}
+
+function editSale(saleId) {
+    const sale = sales.find(s => s.id === saleId);
+    if (!sale) return;
+    
+    const newCustomer = prompt("New customer name:", sale.customer);
+    if (newCustomer) sale.customer = newCustomer;
+    
+    const newQuantity = parseFloat(prompt(`New quantity of ${sale.product}:`, sale.quantity));
+    if (!isNaN(newQuantity) && newQuantity > 0) {
+        const product = stock.find(p => p.name === sale.product);
+        if (product) {
+            const quantityDiff = newQuantity - sale.quantity;
+            if (quantityDiff > product.quantity) {
+                alert(`Only ${product.quantity}${product.unit || ''} of ${sale.product} available`);
+                return;
+            }
+            
+            product.quantity -= quantityDiff;
+            sale.quantity = newQuantity;
+            sale.total = newQuantity * (sale.total / sale.quantity);
+        }
+    }
+    
+    saveData('bizbook_sales', sales);
+    saveData('bizbook_stock', stock);
+    refreshSales();
+    refreshStock();
+    updateCashCalculation();
+    alert("✅ Sale updated");
+}
+
+function deleteSale(saleId) {
+    if (!confirm("Delete this sale?")) return;
+    
+    const saleIndex = sales.findIndex(s => s.id === saleId);
+    if (saleIndex !== -1) {
+        const sale = sales[saleIndex];
+        
+        const product = stock.find(p => p.name === sale.product);
+        if (product) {
+            product.quantity += sale.quantity;
+            saveData('bizbook_stock', stock);
+        }
+        
+        sales.splice(saleIndex, 1);
+        saveData('bizbook_sales', sales);
+        
+        refreshSales();
+        refreshStock();
+        updateCashCalculation();
+        alert("✅ Sale deleted");
+    }
+}
+
+function returnProduct(saleId) {
+    const sale = sales.find(s => s.id === saleId);
+    if (!sale) return;
+    
+    const returnQty = parseFloat(prompt(`Quantity of ${sale.product} to return (bought: ${sale.quantity}):`, sale.quantity));
+    if (!isNaN(returnQty) && returnQty > 0 && returnQty <= sale.quantity) {
+        const product = stock.find(p => p.name === sale.product);
+        if (product) {
+            product.quantity += returnQty;
+            
+            if (returnQty === sale.quantity) {
+                const saleIndex = sales.findIndex(s => s.id === saleId);
+                sales.splice(saleIndex, 1);
+            } else {
+                sale.quantity -= returnQty;
+                sale.total = sale.quantity * (sale.total / (sale.quantity + returnQty));
+            }
+            
+            saveData('bizbook_stock', stock);
+            saveData('bizbook_sales', sales);
+            
+            refreshSales();
+            refreshStock();
+            updateCashCalculation();
+            alert(`✅ ${returnQty} ${sale.product} returned to stock`);
+        }
+    }
+}
+
+// =========== CASH MANAGEMENT ===========
 function refreshCash() {
     const todaySales = sales.filter(sale => 
         new Date(sale.date).toDateString() === new Date().toDateString()
@@ -841,6 +734,7 @@ function saveCash() {
     alert('✅ Cash saved!');
 }
 
+// =========== DEBT MANAGEMENT ===========
 function refreshDebts() {
     const debtList = document.getElementById('debt-list');
     
@@ -855,9 +749,74 @@ function refreshDebts() {
                 <div class="item-name">${debt.customer}</div>
                 <div class="item-detail">${debt.date} ${debt.phone ? `| ${debt.phone}` : ''}</div>
             </div>
-            <div class="item-amount">${formatCurrency(debt.amount)}</div>
+                        <div class="item-amount">${formatCurrency(debt.amount)}</div>
         </div>
     `).join('');
+}
+
+function showDebtMenu(debtId) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+    
+    const action = prompt(
+        `${debt.customer}\nDebt: ${formatCurrency(debt.amount)}\nDate: ${debt.date}\n\nChoose:\n1. Pay debt\n2. Edit\n3. Delete\n\nEnter number (1-3):`,
+        "1"
+    );
+    
+    switch(action) {
+        case "1": payDebt(debtId); break;
+        case "2": editDebt(debtId); break;
+        case "3": deleteDebt(debtId); break;
+        default: break;
+    }
+}
+
+function payDebt(debtId) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+    
+    const amountPaid = parseFloat(prompt(`Amount paid (debt: ${formatCurrency(debt.amount)}):`, debt.amount));
+    if (amountPaid && amountPaid > 0) {
+        if (amountPaid >= debt.amount) {
+            alert(`✅ ${debt.customer} paid all debt of ${formatCurrency(debt.amount)}`);
+            const debtIndex = debts.findIndex(d => d.id === debtId);
+            debts.splice(debtIndex, 1);
+        } else {
+            debt.amount -= amountPaid;
+            alert(`✅ ${debt.customer} paid ${formatCurrency(amountPaid)}, still owes ${formatCurrency(debt.amount)}`);
+        }
+        
+        saveData('bizbook_debts', debts);
+        refreshDebts();
+    }
+}
+
+function editDebt(debtId) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+    
+    const newAmount = parseInt(prompt(`New debt amount (current: ${formatCurrency(debt.amount)}):`, debt.amount));
+    if (newAmount && newAmount > 0) debt.amount = newAmount;
+    
+    const newPhone = prompt(`New phone (current: ${debt.phone || 'None'}):`, debt.phone || '');
+    if (newPhone !== null) debt.phone = newPhone;
+    
+    saveData('bizbook_debts', debts);
+    refreshDebts();
+    alert("✅ Debt updated");
+}
+
+function deleteDebt(debtId) {
+    if (!confirm("Delete this debt?")) return;
+    
+    const debtIndex = debts.findIndex(d => d.id === debtId);
+    if (debtIndex !== -1) {
+        const debt = debts[debtIndex];
+        debts.splice(debtIndex, 1);
+        saveData('bizbook_debts', debts);
+        refreshDebts();
+        alert(`✅ ${debt.customer}'s debt deleted`);
+    }
 }
 
 function addDebtUSSD() {
@@ -891,6 +850,7 @@ function addDebtUSSD() {
     alert(`✅ ${formatCurrency(amount)} debt added for ${customer}`);
 }
 
+// =========== QUICK FUNCTIONS ===========
 function quickSale() {
     if (stock.length === 0) {
         alert('First add products in "Products" tab');
@@ -907,10 +867,10 @@ function quickSale() {
         return;
     }
     
-    const quantity = parseFloat(prompt(`Quantity of ${product.name} in ${product.unit}:`, product.unit === 'pcs' ? "1" : "0.5")) || 0;
+    const quantity = parseFloat(prompt(`Quantity of ${product.name} in ${product.unit || 'unit'}:`, product.unit === 'pcs' ? "1" : "0.5")) || 0;
     
     if (quantity > product.quantity) {
-        alert(`Only ${product.quantity}${product.unit} of ${product.name} available`);
+        alert(`Only ${product.quantity}${product.unit || ''} of ${product.name} available`);
         return;
     }
     
@@ -938,7 +898,7 @@ function quickSale() {
     refreshBuyList();
     updateCashCalculation();
     
-    alert(`✅ ${customer}: ${product.name} × ${quantity}${product.unit} = ${formatCurrency(total)}`);
+    alert(`✅ ${customer}: ${product.name} × ${quantity}${product.unit || ''} = ${formatCurrency(total)}`);
 }
 
 function quickExpense() {
@@ -982,6 +942,7 @@ function exportData() {
     URL.revokeObjectURL(url);
 }
 
+// =========== UTILITY FUNCTIONS ===========
 function formatCurrency(amount) {
     return new Intl.NumberFormat('sw-TZ', {
         style: 'currency',
@@ -990,6 +951,7 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
+// =========== INITIAL LOAD ===========
 refreshStock();
 refreshSales();
 refreshCash();
@@ -999,7 +961,7 @@ refreshBuyList();
 document.getElementById('morning-cash').addEventListener('input', updateCashCalculation);
 document.getElementById('expenses').addEventListener('input', updateCashCalculation);
 
-console.log('📱 BizBook loaded!');
+console.log('📱 BizBook loaded with smart stock system!');
 </script>
 </body>
 </html>
