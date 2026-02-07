@@ -682,6 +682,97 @@ function setupSmartStock(productId) {
     `).join('');
 }
 
+function showBuyOptions(productName) {
+    const product = stock.find(p => p.name === productName);
+    if (!product) return;
+    
+    const action = prompt(
+        `${product.name}\nNeed to buy: ${product.orderQuantity || (product.minStock * 3 - product.quantity)}${product.unit || ''}\nCost: ${formatCurrency((product.orderQuantity || (product.minStock * 3 - product.quantity)) * product.cost)}\n\nChoose:\n1. Create WhatsApp order\n2. Change order amount\n3. Mark as bought\n\nEnter number (1-3):`,
+        "1"
+    );
+    
+    switch(action) {
+        case "1": createSmartOrder(); break;
+        case "2": 
+            const newAmount = parseInt(prompt(`New order amount for ${product.name} (current: ${product.orderQuantity}${product.unit || ''}):`, product.orderQuantity));
+            if (newAmount && newAmount > 0) {
+                product.orderQuantity = newAmount;
+                saveData('bizbook_stock', stock);
+                refreshBuyList();
+                alert(`✅ Order amount updated: ${newAmount}${product.unit || ''}`);
+            }
+            break;
+        case "3":
+            product.quantity += (product.orderQuantity || (product.minStock * 3 - product.quantity));
+            saveData('bizbook_stock', stock);
+            refreshStock();
+            refreshBuyList();
+            alert(`✅ ${product.orderQuantity || (product.minStock * 3 - product.quantity)}${product.unit || ''} of ${product.name} added to stock`);
+            break;
+    }
+}
+
+function createSmartOrder() {
+    let itemsToBuy = [];
+    let totalCost = 0;
+    let supplierMessage = "";
+    
+    stock.forEach(item => {
+        if (item.quantity <= item.minStock) {
+            const needed = item.orderQuantity || (item.minStock * 3 - item.quantity);
+            const cost = needed * item.cost;
+            
+            let orderText;
+            if (item.unit === 'kg') {
+                orderText = `${item.name}: ${needed}kg`;
+            } else if (item.unit === 'liter') {
+                orderText = `${item.name}: ${needed}liter`;
+            } else {
+                orderText = `${item.name}: ${needed}`;
+            }
+            
+            itemsToBuy.push({
+                name: item.name,
+                needed: needed,
+                unit: item.unit,
+                cost: cost,
+                orderText: orderText
+            });
+            
+            totalCost += cost;
+            supplierMessage += `• ${orderText}\n`;
+        }
+    });
+    
+    if (itemsToBuy.length === 0) {
+        alert('Nothing to buy now');
+        return;
+    }
+    
+    const supplier = prompt(
+        `Buy from who?\n1. Bwana Juma\n2. Soda Business\n3. Other supplier\n\nEnter number or name:`,
+        "Bwana Juma"
+    );
+    
+    let supplierName = supplier;
+    if (supplier === '1') supplierName = "Bwana Juma";
+    if (supplier === '2') supplierName = "Soda Business";
+    
+    const message = `Habari ${supplierName},\n\nI need to buy:\n${supplierMessage}\nApprox total: ${formatCurrency(totalCost)}\n\nWhen can I pay you?`;
+    
+    const supplierPhone = prompt(
+        `${supplierName}'s phone (can leave empty):`,
+        "0712xxxxxx"
+    );
+    
+    if (supplierPhone && supplierPhone.length >= 9) {
+        window.open(`https://wa.me/${supplierPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    } else {
+        navigator.clipboard.writeText(message);
+        alert(`✅ Order copied to clipboard!\n\nPaste in WhatsApp to ${supplierName}`);
+    }
+            }
+
 function refreshSales() {
     const today = new Date().toDateString();
     const todaySales = sales.filter(sale => new Date(sale.date).toDateString() === today);
