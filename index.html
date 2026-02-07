@@ -243,20 +243,38 @@ function showProductMenu(productId) {
     const product = stock.find(p => p.id === productId);
     if (!product) return;
     
+    const isCarton = product.cartonSize;
+    
+    const options = isCarton 
+        ? `1. Make sale\n2. Change price\n3. Change quantity\n4. Set reorder logic\n5. View carton details\n6. Remove product`
+        : `1. Make sale\n2. Change price\n3. Change quantity\n4. Set reorder logic\n5. Remove product`;
+    
     const action = prompt(
-        `${product.name}\nQuantity: ${product.quantity}${product.unit}\nPrice: ${formatCurrency(product.price)}/${product.unit}\nMin stock: ${product.minStock}${product.unit}\n\nChoose:\n1. Make sale\n2. Change price\n3. Change quantity\n4. Set reorder logic\n5. Remove product\n\nEnter number (1-5):`,
+        `${product.name}\nQuantity: ${product.quantity}${product.unit || ''}\nPrice: ${formatCurrency(product.price)}/${product.unit || 'unit'}\nMin stock: ${product.minStock}${product.unit || ''}\n\nChoose:\n${options}\n\nEnter number:`,
         "1"
     );
     
-    switch(action) {
-        case "1": makeSaleWithUnits(productId); break;
-        case "2": changeProductPrice(productId); break;
-        case "3": changeProductQuantity(productId); break;
-        case "4": setupSmartStock(productId); break;
-        case "5": deleteProduct(productId); break;
-        default: break;
+    if (isCarton) {
+        switch(action) {
+            case "1": makeCartonSale(productId); break;
+            case "2": changeProductPrice(productId); break;
+            case "3": changeProductQuantity(productId); break;
+            case "4": setupSmartStock(productId); break;
+            case "5": showCartonDetails(productId); break;
+            case "6": deleteProduct(productId); break;
+            default: break;
+        }
+    } else {
+        switch(action) {
+            case "1": makeSaleWithUnits(productId); break;
+            case "2": changeProductPrice(productId); break;
+            case "3": changeProductQuantity(productId); break;
+            case "4": setupSmartStock(productId); break;
+            case "5": deleteProduct(productId); break;
+            default: break;
+        }
     }
-}
+        }
 
 function makeSaleWithUnits(productId) {
     const product = stock.find(p => p.id === productId);
