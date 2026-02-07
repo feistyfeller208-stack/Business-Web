@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BizBook</title>
+<style>
+*{box-sizing:border-box;font-family:Arial}
+body{margin:0;background:#f5f5f5;padding-bottom:80px}
+header{background:#2E8B57;color:#fff;padding:15px;text-align:center}
+.tabs{display:flex;background:#fff}
+.tab-btn{flex:1;border:none;padding:10px;font-size:12px}
+.tab-btn.active{background:#2E8B57;color:#fff}
+.tab-content{display:none;padding:15px}
+.tab-content.active{display:block}
+.card{background:#fff;border-radius:10px;padding:15px;margin-bottom:15px}
+.item{background:#f9f9f9;padding:10px;border-left:4px solid #2E8B57;margin-bottom:10px;cursor:pointer}
+.item-name{font-weight:bold}
+.item-amount{color:#2E8B57;font-weight:bold}
+.btn{width:100%;padding:12px;background:#2E8B57;color:#fff;border:none;border-radius:5px}
+.action-bar{position:fixed;bottom:0;left:0;right:0;display:flex;gap:5px;background:#fff;padding:10px}
+.action-btn{flex:1;background:#2E8B57;color:#fff;border:none;padding:10px}
+</style>
+</head>
+<body>
+
+<header><h2>📓 BizBook</h2></header>
+
+<div class="tabs">
+<button class="tab-btn active" data-tab="products">📦 Products</button>
+<button class="tab-btn" data-tab="sales">💰 Sales</button>
+<button class="tab-btn" data-tab="buy">🚚 Buy</button>
+</div>
+
+<div id="products" class="tab-content active">
+<div class="card">
+<h3>Products</h3>
+<div id="stock-list"></div>
+<button class="btn" onclick="addProduct()">+ Add Product</button>
+</div>
+</div>
+
+<div id="sales" class="tab-content">
+<div class="card">
+<h3>Sales</h3>
+<div id="sales-list"></div>
+</div>
+</div>
+
+<div id="buy" class="tab-content">
+<div class="card">
+<h3>Need to Buy</h3>
+<div id="buy-list"></div>
+<button class="btn" onclick="createSmartOrder()">Create WhatsApp Order</button>
+</div>
+</div>
+
+<div class="action-bar">
+<button class="action-btn" onclick="quickSale()">Quick Sale</button>
+<button class="action-btn" onclick="exportData()">Export</button>
+</div>
+
+<script>
+const save=(k,d)=>localStorage.setItem(k,JSON.stringify(d))
+const load=k=>JSON.parse(localStorage.getItem(k)||"[]")
+
+let stock=load("stock")
+let sales=load("sales")
+
+document.querySelectorAll(".tab-btn").forEach(b=>{
+b.onclick=()=>{
+document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("active"))
+document.querySelectorAll(".tab-content").forEach(x=>x.classList.remove("active"))
+b.classList.add("active")
+document.getElementById(b.dataset.tab).classList.add("active")
+refreshAll()
+}
+})
+
+function refreshAll(){
+refreshStock()
+refreshSales()
+refreshBuy()
+}
+
+function addProduct(){
+const name=prompt("Product name")
+if(!name)return
+const unit=prompt("Unit (pcs, kg, l)", "pcs")
+const qty=+prompt("Quantity")
+const price=+prompt("Sell price per unit")
+const hasCarton=confirm("Is this sold in cartons?")
+let cartonSize=null
+if(hasCarton){
+cartonSize=+prompt("How many units per carton?")
+}
+stock.push({
+id:Date.now(),
+name,unit,
+quantity:qty,
+price,
+cartonSize,
+minStock: Math.max(1, Math.floor(qty*0.3)),
+orderQty: qty
+})
+save("stock",stock)
+refreshStock()
+}
+
+function refreshStock(){
+const el=document.getElementById("stock-list")
+el.innerHTML=""
+stock.forEach(p=>{
+el.innerHTML+=`
+<div class="item" onclick="showProductMenu(${p.id})">
+<div>
+<div class="item-name">${p.name}</div>
+<div>${p.quantity} ${p.unit}</div>
+</div>
+<div class="item-amount">TZS ${p.price}</div>
+</div>`
+})
+}
+
+function showProductMenu(id){
+const p=stock.find(x=>x.id===id)
+if(!p)return
+
+let menu
+if(p.cartonSize){
+menu =
+"1 Sell single unit\n"+
+"2 Sell carton\n"+
+"3 Change price\n"+
+"4 Add stock\n"+
+"5 Delete product"
+}else{
+menu =
+"1 Sell\n"+
+"2 Change price\n"+
+"3 Add stock\n"+
+"4 Delete product"
+}
+
+const c=prompt(menu)
+if(p.cartonSize){
+if(c==="1") sellUnits(p)
+if(c==="2") sellCarton(p)
+if(c==="3") changePrice(p)
+if(c==="4") addStock(p)
+if(c==="5") deleteProduct(p.id)
+}else{
+if(c==="1") sellUnits(p)
+if(c==="2") changePrice(p)
+if(c==="3") addStock(p)
+if(c==="4") deleteProduct(p.id)
+}
+}
+
+function sellUnits(p){
+const q=+prompt("Quantity")
+if(q>p.quantity)return alert("Not enough stock")
+p.quantity-=q
+sales.push({product:p.name,qty:q,total:q*p.price})
+save("sales",sales);save("stock",stock)
+refreshAll()
+}
+
+function sellCarton(p){
+const c=+prompt("How many cartons?")
+const q=c*p.cartonSize
+if(q>p.quantity)return alert("Not enough stock")
+p.quantity-=q
+sales.push({product:p.name,qty:q,total:q*p.price})
+save("sales",sales);save("stock",stock)
+refreshAll()
+}
+
+function changePrice(p){
+p.price=+prompt("New price",p.price)
+save("stock",stock)
+refreshStock()
+}
+
+function addStock(p){
+const q=+prompt("Add quantity")
+p.quantity+=q
+save("stock",stock)
+refreshAll()
+}
+
+function deleteProduct(id){
+if(!confirm("Delete this product?"))return
+stock=stock.filter(p=>p.id!==id)
+save("stock",stock)
+refreshAll()
+}
+
+function refreshBuy(){
+const el=document.getElementById("buy-list")
+el.innerHTML=""
+stock.filter(p=>p.quantity<=p.minStock).forEach(p=>{
+el.innerHTML+=`
+<div class="item" onclick="showBuyOptions(${p.id})">
+<div class="item-name">${p.name}</div>
+<div class="item-amount">Need ${p.orderQty} ${p.unit}</div>
+</div>`
+})
+if(el.innerHTML==="") el.innerHTML="<div>Nothing to buy</div>"
+}
+
+function showBuyOptions(id){
+const p=stock.find(x=>x.id===id)
+if(!p)return
+const c=prompt(
+p.name+"\n\n"+
+"1 Mark as bought\n"+
+"2 Change order amount\n"+
+"3 Create WhatsApp order"
+)
+if(c==="1"){
+p.quantity+=p.orderQty
+save("stock",stock)
+refreshAll()
+}
+if(c==="2"){
+p.orderQty=+prompt("New order quantity",p.orderQty)
+save("stock",stock)
+refreshBuy()
+}
+if(c==="3"){
+createSmartOrder()
+}
+}
+
+function createSmartOrder(){
+let msg="Hello, I need to buy:\n"
+stock.filter(p=>p.quantity<=p.minStock).forEach(p=>{
+msg+=`- ${p.name}: ${p.orderQty} ${p.unit}\n`
+})
+navigator.clipboard.writeText(msg)
+alert("Order copied to clipboard")
+}
+
+function refreshSales(){
+document.getElementById("sales-list").innerHTML=
+sales.map(s=>`<div class="item">${s.product} × ${s.qty}</div>`).join("")
+}
+
+function quickSale(){
+if(stock.length===0)return
+sellUnits(stock[0])
+}
+
+function exportData(){
+const blob=new Blob([JSON.stringify({stock,sales},null,2)],{type:"application/json"})
+const a=document.createElement("a")
+a.href=URL.createObjectURL(blob)
+a.download="bizbook.json"
+a.click()
+}
+
+refreshAll()
+</script>
+</body>
+</html>
