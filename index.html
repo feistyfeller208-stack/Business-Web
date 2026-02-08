@@ -906,6 +906,35 @@ function refreshDebts() {
     `).join('');
             }
 
+function showDebtMenu(debtId) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+    
+    const options = `
+1. 💬 Send WhatsApp Reminder
+2. ➕ Increase Debt Amount
+3. ➖ Decrease Debt Amount
+4. ✅ Mark as Paid (Remove)
+5. 📝 Add/Edit Note
+6. ❌ Delete Debt
+    `;
+    
+    const action = prompt(
+        `${debt.customer}\nOwed: ${formatCurrency(debt.amount)}\nDate: ${debt.date}\n${debt.note ? `Note: ${debt.note}\n` : ''}\nChoose action:\n${options}`,
+        "1"
+    );
+    
+    switch(action) {
+        case "1": sendDebtReminder(debtId); break;
+        case "2": changeDebtAmount(debtId, 'increase'); break;
+        case "3": changeDebtAmount(debtId, 'decrease'); break;
+        case "4": markDebtAsPaid(debtId); break;
+        case "5": addDebtNote(debtId); break;
+        case "6": deleteDebt(debtId); break;
+        default: break;
+    }
+            }
+
 function addDebtUSSD() {
     const customer = prompt("Customer name:", "Customer");
     if (!customer) return;
