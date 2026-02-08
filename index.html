@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="sw">
 <head>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2E8B57">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BizBook</title>
@@ -36,6 +38,15 @@
         .badge-success { background: #2ecc71; color: white; }
     </style>
 </head>
+
+    <script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js")
+    .then(() => console.log("Service Worker registered"))
+    .catch(err => console.error("SW error", err));
+}
+    </script>
+    
 <body>
     <header>
         <h1>📓 BizBook</h1>
