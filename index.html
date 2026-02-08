@@ -935,36 +935,161 @@ function showDebtMenu(debtId) {
     }
             }
 
+function sendDebtReminder(debtId) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+    
+    if (!debt.phone) {
+        const phone = prompt(`WhatsApp number for ${debt.customer}:`, "2557xxxxxx");
+        if (!phone) return;
+        debt.phone = phone;
+        saveData('bizbook_debts', debts);
+    }
+    
+    const message = `Habari ${debt.customer},\n\nKumbukumbu ya deni:\n\nKiasi: ${formatCurrency(debt.amount)}\nTarehe: ${debt.date}\n${debt.note ? `Sababu: ${debt.note}\n` : ''}\nTafadhali lipa deni lako.\n\nAsante.`;
+    
+    if (debt.phone) {
+        window.open(`https://wa.me/${debt.phone}?text=${encodeURIComponent(message)}`, '_blank');
+        alert(`✅ WhatsApp message ready for ${debt.customer}`);
+    } else {
+        navigator.clipboard.writeText(message);
+        alert(`✅ Message copied!\n\nPaste in WhatsApp to ${debt.customer}`);
+    }
+}
+
+function changeDebtAmount(debtId, action) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+    
+    const currentAmount = debt.amount;
+    const changeType = action === 'increase' ? 'Increase' : 'Decrease';
+    
+    const changeAmount = parseInt(prompt(
+        `${debt.customer}\nCurrent debt: ${formatCurrency(currentAmount)}\n\n${changeType} amount (TZS):`,
+        "1000"
+    )) || 0;
+    
+    if (changeAmount <= 0) return;
+    
+    if (action === 'increase') {
+        debt.amount += changeAmount;
+        debt.date = new Date().toLocaleDateString('sw-TZ'); // Update date
+        alert(`✅ Debt increased by ${formatCurrency(changeAmount)}\nNew total: ${formatCurrency(debt.amount)}`);
+    } else {
+        if (changeAmount > debt.amount) {
+            alert(`❌ Cannot decrease by more than debt amount!`);
+            return;
+        }
+        debt.amount -= changeAmount;
+        if (debt.amount === 0) {
+            markDebtAsPaid(debtId);
+            return;
+        }
+        alert(`✅ Debt decreased by ${formatCurrency(changeAmount)}\nRemaining: ${formatCurrency(debt.amount)}`);
+    }
+    
+    saveData('bizbook_debts', debts);
+    refreshDebts();
+}
+
+function markDebtAsPaid(debtId) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+    
+    if (confirm(`✅ Mark ${debt.customer}'s debt of ${formatCurrency(debt.amount)} as PAID?`)) {
+        // Add to today's sales as "Debt Payment"
+        const sale = {
+            id: Date.now(),
+            customer: `${debt.customer} (Debt Paid)`,
+            product: "Debt Payment",
+            quantity: 1,
+            unit: "payment",
+            total: debt.amount,
+            date: new Date().toISOString(),
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+        };
+        
+        sales.push(sale);
+        saveData('bizbook_sales', sales);
+        
+        // Remove from debts
+        const index = debts.findIndex(d => d.id === debtId);
+        if (index !== -1) {
+            debts.splice(index, 1);
+            saveData('bizbook_debts', debts);
+        }
+        
+        refreshDebts();
+        refreshSales();
+        updateCashCalculation();
+        
+        alert(`✅ ${debt.customer}'s debt marked as PAID\nAdded to today's sales`);
+    }
+}
+
+function addDebtNote(debtId) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+    
+    const note = prompt(`Add note for ${debt.customer}'s debt (e.g., "For soda", "Will pay Friday"):`, debt.note || "");
+    
+    if (note !== null) {
+        debt.note = note;
+        saveData('bizbook_debts', debts);
+        refreshDebts();
+        alert(`✅ Note added for ${debt.customer}`);
+    }
+}
+
+function deleteDebt(debtId) {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+    
+    if (confirm(`❌ Permanently delete ${debt.customer}'s debt of ${formatCurrency(debt.amount)}?\n\nThis will NOT add to sales.`)) {
+        const index = debts.findIndex(d => d.id === debtId);
+        if (index !== -1) {
+            debts.splice(index, 1);
+            saveData('bizbook_debts', debts);
+            refreshDebts();
+            alert(`✅ ${debt.customer}'s debt deleted`);
+        }
+    }
+            }
+
 function addDebtUSSD() {
     const customer = prompt("Customer name:", "Customer");
     if (!customer) return;
     
     const amount = parseInt(prompt(`Debt amount (TZS):`, "5000")) || 0;
     const phone = prompt("Customer phone (optional):", "") || "";
+    const note = prompt("Reason/Note (optional):", "") || "";
     
     if (!customer || amount <= 0) {
         alert("Enter customer name and debt amount");
         return;
     }
     
-    debts.push({
+    const newDebt = {
         id: Date.now(),
         customer: customer,
         amount: amount,
         phone: phone,
+        note: note,
         date: new Date().toLocaleDateString('sw-TZ')
-    });
+    };
     
+    debts.push(newDebt);
     saveData('bizbook_debts', debts);
     refreshDebts();
     
-    if (phone && confirm("Send WhatsApp message?")) {
-        const message = `Hello ${customer}, your debt is ${formatCurrency(amount)}. Please pay.`;
+    // Always ask if they want to send WhatsApp reminder
+    if (phone && confirm(`Send WhatsApp reminder to ${customer}?`)) {
+        const message = `Habari ${customer},\n\nUmekopa: ${formatCurrency(amount)}\nTarehe: ${newDebt.date}\n${note ? `Sababu: ${note}\n` : ''}\nTafadhali kumbuka kulipa.`;
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
     }
     
     alert(`✅ ${formatCurrency(amount)} debt added for ${customer}`);
-}
+            }
 
 function quickSale() {
     if (stock.length === 0) {
