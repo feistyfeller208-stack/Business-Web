@@ -112,8 +112,8 @@ if ("serviceWorker" in navigator) {
     
     <div class="action-bar">
         <button class="action-btn" onclick="showMenu()">
-    <span>⋮</span>
-    <span>More</span>
+    <span>⚙️</span>
+    <span>Menu</span>
         </button>
         <button class="action-btn" onclick="quickSale()">💰 Quick Sale</button>
         <button class="action-btn" onclick="quickExpense()">📝 Expense</button>
@@ -1395,23 +1395,25 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
-// === MORE MENU ===
 function showMenu() {
-    const options = `
-1. 📖 Maagizo (Guide)
-2. 💾 Toa Backup
-3. 🗑️ Futa data ya mfano
-4. ℹ️ Kuhusu BizBook`;
+    const menu = `
+⚙️ CHAGUA HUDUMA:
+
+[1] 📖 MAAGIZO - Jinsi ya kutumia BizBook
+[2] 💾 BACKUP - Pakua data yako yote
+[3] 🗑️ FUTA - Ondoa data ya mfano pekee
+[4] ℹ️ KUHUSU - Habari za BizBook
+
+Weka namba (1-4):`;
     
-    const choice = prompt("Chagua:", "1");
+    const choice = prompt(menu, "1");
     
-    switch(choice) {
-        case "1": showHelp(); break;
-        case "2": exportData(); break;
-        case "3": resetDemoData(); break;
-        case "4": showAbout(); break;
-    }
-}
+    if (choice === "1") showHelp();
+    else if (choice === "2") exportData();
+    else if (choice === "3") resetDemoData();
+    else if (choice === "4") showAbout();
+    else alert("⚠️ Chagua namba 1, 2, 3 au 4 tu");
+            }
 
 function showHelp() {
     const helpText = `
