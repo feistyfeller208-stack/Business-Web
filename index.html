@@ -1413,6 +1413,39 @@ function showMenu() {
     }
 }
 
+function showHelp() {
+    const helpText = `
+❓ MASWALI YA MARA KWA MARA:
+
+📱 JINSI YA KUSAJIO BIZBOOK:
+1. Fungua Chrome browser
+2. Andika anau: https://feistyellow208.github.io/BizBook/
+3. Bonyeza "⋮" (dots tatu) juu kulia
+4. Chagua "Add to Home Screen"
+5. Bonyeza "Add"
+6. App itaonekana kwenye home screen yako!
+
+🛒 KUANZA BIASHARA:
+1. Bonyeza "Add Product" kwanza
+2. Weka bidhaa ZAKO (jina, bei, wingi)
+3. Anza mauzo kwa "Quick Sale"
+
+💰 DENI NA PESA:
+• Deni: Andika, bonyeza jina, tuma WhatsApp
+• Pesa: Weka pesa asubuhi, ona jioni
+
+💾 DATA YAKO:
+• Yote inahifadhiwa kwenye SIMU yako
+• Hakuna internet inahitajika
+• Toa backup kwa "Export"
+
+📞 USHAURI ZAIDI:
+• WhatsApp: [NUMBER-YAKO]
+• Tuma screen shot kama shida`;
+    
+    alert(helpText);
+            }
+
 function resetDemoData() {
     if (confirm("❌ Futa data yote ya mfano?\n\nHii itafuta bidhaa, mauzo, deni, na pesa.\n\nTUMAHALIKI: Data yako halisi itabaki!")) {
         // Keep only real user data (not demo data)
