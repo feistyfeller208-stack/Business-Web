@@ -2054,66 +2054,134 @@ Zipo kwenye menu ya kando!`);
         }
 
         function showBuyOptions(productName) {
-            const product = stock.find(p => p.name === productName);
-            if (!product) return;
+    const product = stock.find(p => p.name === productName);
+    if (!product) return;
+    
+    const needed = product.orderQuantity || (product.minStock * 3 - product.quantity);
+    
+    const action = prompt(
+        `${product.name}\nHivi sasa: ${product.quantity}${product.unit}\nUnahitaji: ${needed}${product.unit}\nGharama: ${formatCurrency(needed * product.cost)}\n\n` +
+        `1. 📱 Tuma order kwa WhatsApp\n` +
+        `2. ✏️ Badilisha kiasi cha order\n` +
+        `3. ✅ Mark as bought (ongezaga stock)\n` +
+        `4. ❌ Ondoa kutoka kwenye orodha\n\n` +
+        `Chagua namba (1-4):`,
+        "1"
+    );
+    
+    switch(action) {
+        case "1":
+            // Send order via WhatsApp
+            const message = `Ninaomba ${product.name} ${needed}${product.unit}. Bei gani?`;
             
-            const action = prompt(
-                `${product.name}\nNeed: ${product.orderQuantity || (product.minStock * 3 - product.quantity)}${product.unit}\nCost: ${formatCurrency((product.orderQuantity || (product.minStock * 3 - product.quantity)) * product.cost)}\n\n1. Order from suppliers\n2. Mark as bought`,
-                "1"
-            );
-            
-            if (action === "1") {
-                // Go to marketplace with this product
-                openMarketplace();
-                switchMarketTab('suppliers');
+            if (suppliers.length > 0 || (publicSuppliers && publicSuppliers.length > 0)) {
+                // Combine suppliers
+                let allSuppliers = [];
+                suppliers.forEach(s => allSuppliers.push({...s, type: 'local'}));
+                if (publicSuppliers) publicSuppliers.forEach(s => allSuppliers.push({...s, type: 'verified'}));
                 
-                setTimeout(() => {
-                    document.getElementById('market-search').value = product.name;
-                    searchMarketplace();
-                }, 500);
-            } else if (action === "2") {
-                const needed = product.orderQuantity || (product.minStock * 3 - product.quantity);
-                product.quantity += needed;
-                saveData('bizbook_stock', stock);
-                refreshStock();
-                refreshBuyList();
-                alert(`✅ ${needed}${product.unit} added to stock`);
-            }
-        }
-
-        function createSmartOrder() {
-            let itemsToBuy = [];
-            let totalCost = 0;
-            let supplierMessage = "";
-            
-            stock.forEach(item => {
-                if (item.quantity <= item.minStock) {
-                    const needed = item.orderQuantity || (item.minStock * 3 - item.quantity);
-                    const cost = needed * item.cost;
-                    itemsToBuy.push({ name: item.name, needed: needed, unit: item.unit });
-                    totalCost += cost;
-                    supplierMessage += `• ${item.name}: ${needed}${item.unit}\n`;
-                }
-            });
-            
-            if (itemsToBuy.length === 0) {
-                alert('Nothing to buy now');
-                return;
-            }
-            
-            if (suppliers.length > 0) {
-                if (confirm(`Tuma order kwa wauzaji wako (${suppliers.length})?`)) {
-                    const message = `Ninaomba:\n${supplierMessage}\nJumla: ${formatCurrency(totalCost)}`;
-                    
-                    suppliers.forEach(s => {
-                        if (confirm(`Tuma kwa ${s.name}?`)) {
-                            window.open(`https://wa.me/${s.phone}?text=${encodeURIComponent(message)}`, '_blank');
+                let supplierList = "Chagua wauzaji (tenganisha kwa koma):\n\n";
+                allSuppliers.forEach((s, index) => {
+                    const badge = s.type === 'verified' ? '✅' : '📱';
+                    supplierList += `${index + 1}. ${badge} ${s.name} - ${s.phone}\n`;
+                });
+                
+                const selected = prompt(supplierList + "\nWeka namba:", "1");
+                if (selected) {
+                    const indices = selected.split(',').map(n => parseInt(n.trim()) - 1);
+                    indices.forEach(i => {
+                        if (i >= 0 && i < allSuppliers.length) {
+                            window.open(`https://wa.me/${allSuppliers[i].phone}?text=${encodeURIComponent(message)}`, '_blank');
                         }
                     });
                 }
             } else {
-                alert("Hakuna wauzaji. Waongeze kwenye Marketplace kwanza.");
+                // No suppliers - just copy to clipboard
+                navigator.clipboard.writeText(message);
+                alert("✅ Ujumbe umenakiliwa! Bandika kwenye WhatsApp na utume kwa wauzaji wako.");
             }
+            break;
+            
+        case "2":
+            const newNeeded = parseInt(prompt(`Kiasi kipya cha ${product.name} (${product.unit}):`, needed));
+            if (newNeeded && newNeeded > 0) {
+                product.orderQuantity = newNeeded;
+                saveData('bizbook_stock', stock);
+                refreshBuyList();
+                alert(`✅ Kiasi kimebadilika: ${newNeeded}${product.unit}`);
+            }
+            break;
+            
+        case "3":
+            product.quantity += needed;
+            saveData('bizbook_stock', stock);
+            refreshStock();
+            refreshBuyList();
+            alert(`✅ ${needed}${product.unit} ya ${product.name} imeongezwa kwenye stock`);
+            break;
+            
+        case "4":
+            if (confirm(`Una uhakika unataka kuondoa ${product.name} kwenye orodha ya kununua?`)) {
+                // Just remove from buy list by setting minStock higher than current
+                product.minStock = 0;
+                saveData('bizbook_stock', stock);
+                refreshBuyList();
+                alert(`✅ ${product.name} imeondolewa kwenye orodha`);
+            }
+            break;
+    }
+        }
+
+        function createSmartOrder() {
+    let itemsToBuy = [];
+    let totalCost = 0;
+    let orderMessage = "Ninaomba:\n";
+    
+    stock.forEach(item => {
+        if (item.quantity <= item.minStock) {
+            const needed = item.orderQuantity || (item.minStock * 3 - item.quantity);
+            const cost = needed * item.cost;
+            itemsToBuy.push({ name: item.name, needed: needed, unit: item.unit });
+            totalCost += cost;
+            orderMessage += `• ${item.name}: ${needed}${item.unit}\n`;
+        }
+    });
+    
+    if (itemsToBuy.length === 0) {
+        alert('Hakuna bidhaa za kuagiza sasa');
+        return;
+    }
+    
+    orderMessage += `\nJumla: ${formatCurrency(totalCost)}`;
+    
+    // Check if there are ANY suppliers (local or verified)
+    let allSuppliers = [];
+    suppliers.forEach(s => allSuppliers.push({...s, type: 'local'}));
+    if (publicSuppliers) publicSuppliers.forEach(s => allSuppliers.push({...s, type: 'verified'}));
+    
+    if (allSuppliers.length > 0) {
+        if (confirm(`Tuma order kwa wauzaji wako (${allSuppliers.length})?`)) {
+            let supplierList = "Chagua wauzaji (tenganisha kwa koma):\n\n";
+            allSuppliers.forEach((s, index) => {
+                const badge = s.type === 'verified' ? '✅' : '📱';
+                supplierList += `${index + 1}. ${badge} ${s.name} - ${s.phone}\n`;
+            });
+            
+            const selected = prompt(supplierList + "\nWeka namba:", "1");
+            if (selected) {
+                const indices = selected.split(',').map(n => parseInt(n.trim()) - 1);
+                indices.forEach(i => {
+                    if (i >= 0 && i < allSuppliers.length) {
+                        window.open(`https://wa.me/${allSuppliers[i].phone}?text=${encodeURIComponent(orderMessage)}`, '_blank');
+                    }
+                });
+            }
+        }
+    } else {
+        // No suppliers - just copy to clipboard
+        navigator.clipboard.writeText(orderMessage);
+        alert("✅ Orodha ya order imenakiliwa!\n\nBandika kwenye WhatsApp na utume kwa wauzaji wako.");
+    }
         }
 
         function quickExpense() {
